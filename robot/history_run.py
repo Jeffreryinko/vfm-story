@@ -568,10 +568,22 @@ def wd_entities(qids, props="claims|labels|sitelinks|descriptions", extra=None):
     return out
 
 
-def cv(e, p):
-    """속성 값들 (deprecated 빼고, preferred 먼저)"""
+def _end_year(c):
+    """그 진술의 '끝난 때'(P582) 연도. 없으면 None (= 끝나지 않음, 죽을 때까지 유지)"""
+    q = ((c.get("qualifiers") or {}).get("P582") or [{}])[0]
+    t = ((q.get("datavalue") or {}).get("value") or {}).get("time", "") if isinstance(q, dict) else ""
+    m = re.match(r"([+-])0*(\d+)", t or "")
+    return (-1 if m.group(1) == "-" else 1) * int(m.group(2)) if m else None
+
+
+def cv(e, p, latest=False):
+    """속성 값들 (deprecated 빼고, preferred 먼저).
+    latest=True(국적): 끝난 때가 없는 것(죽을 때의 나라) → 늦게 끝난 것 순 — 김일성이 일본 제국(1945년 끝)이 아니라 북한이 되게"""
     cs = [c for c in (e.get("claims") or {}).get(p, []) if c.get("rank") != "deprecated"]
-    cs.sort(key=lambda c: 0 if c.get("rank") == "preferred" else 1)
+    if latest:
+        cs.sort(key=lambda c: (0 if c.get("rank") == "preferred" else 1, 0 if _end_year(c) is None else 1, -(_end_year(c) or 0)))
+    else:
+        cs.sort(key=lambda c: 0 if c.get("rank") == "preferred" else 1)
     out = []
     for c in cs:
         v = ((c.get("mainsnak") or {}).get("datavalue") or {}).get("value")
@@ -737,7 +749,7 @@ def classify(page, ent, kind, C, L, hint, CL):
     if y2 is not None and y is not None and y2 < y: y2 = None
     # 역할별 나라: 인물 = 국적(속한 나라·왕조) → 활동지 → 출생지 / 사건 = 일어난 곳 → 나라 / 나라·왕조 = 그 나라
     # (출생지가 먼저면 백제 무령왕이 '일본'(섬에서 태어났다는 기록), 동로마 황제가 '튀르키예'가 되던 문제)
-    if kind == "person": ROLE = (("nat", cv(ent, "P27")[:3], 1), ("work", cv(ent, "P937")[:3], 0), ("born", cv(ent, "P19")[:1], 0))
+    if kind == "person": ROLE = (("nat", cv(ent, "P27", latest=True)[:3], 1), ("work", cv(ent, "P937")[:3], 0), ("born", cv(ent, "P19")[:1], 0))
     elif kind == "state": ROLE = (("at", [ent.get("id")] + cv(ent, "P17")[:2], 1), ("at", cv(ent, "P30")[:1], 0))
     else: ROLE = (("at", cv(ent, "P17")[:4], 1), ("at", cv(ent, "P276")[:6], 0), ("at", cv(ent, "P131")[:1], 0), ("side", [q for q in cv(ent, "P710")[:8] if q in C.c], 1))
     isos, thens, region, roles, at_regs, cont_reg = [], [], "", {}, [], ""
@@ -819,7 +831,7 @@ def retheme_people(st):
     st.seeds["retheme"] = "v2"; log(f"사람 테마 다시 매김: {n:,}편")
 
 
-RECLASS = "reclass6"          # 분류 규칙을 바꾸면 이름을 올림 → 받은 글 전부를 위키데이터로 다시 분류 (본문은 안 받음, 토큰 0)
+RECLASS = "reclass7"          # 분류 규칙을 바꾸면 이름을 올림 → 받은 글 전부를 위키데이터로 다시 분류 (본문은 안 받음, 토큰 0)
 def reclass(st, C, L, CL, cp):
     """받은 글 전부 다시 분류: 개념 종류 · 대략 연도(~경) · 역할별 나라 · 권역. 끊겨도 다음 회차에 이어서."""
     if st.seeds.get(RECLASS) == "done": return
