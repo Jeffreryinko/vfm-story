@@ -185,8 +185,10 @@ def from_kyobo(menu, sid):
                 out.append(entry(sid, x.get("cmdtName"), x.get("chrcName"), x.get("cmdtCode"), x.get("pbcmName"),
                                  (x.get("rlseDate") or "")[:4], re.sub(r"년$", "", x.get("rcmnSlcnYr") or ""),
                                  cat=(x.get("saleCmdtClstName") or "") + (" " + c.get("rcmnFldName", "") if len(cats) > 1 else "")))
-            if not rows or page * 100 >= (b.get("total") or 0) or page > 60:
+            if not rows or page * 100 >= (b.get("total") or 0) or page >= 40:
                 break
+            if left() < MAX_MIN * 60 * 0.35:
+                raise TimeoutError("시간 부족 — 다음 실행에 처음부터")
             page += 1
             time.sleep(0.3)
     return out
@@ -362,8 +364,8 @@ def collect(force: bool):
         fresh = old.get("ok") and (time.time() - old.get("ok", 0) < (30 if sid.startswith("wb_") else 6.5) * 86400)
         if sid in raw and fresh and not force and not sid.startswith(("yonsei", "korea")):
             continue
-        if left() < 600 and sid in raw:
-            log(f"목록 {sid}: 시간이 모자라 다음에"); continue
+        if left() < MAX_MIN * 60 * 0.5:
+            log(f"목록 {sid}: 시간이 모자라 다음 실행에"); continue
         try:
             log(f"목록 {sid} 받는 중…")
             rows = fn()
@@ -373,6 +375,8 @@ def collect(force: bool):
             meta[sid] = {"ok": time.time(), "n": len(rows), "fail": 0}
             log(f"목록 {sid}: {len(rows)}권")
             jsave(ST / "raw.json", raw); jsave(ST / "raw_meta.json", meta, compact=False)
+        except TimeoutError as e:
+            log(f"목록 {sid}: {e}")
         except Exception as e:  # noqa: BLE001
             meta[sid] = {**old, "fail": old.get("fail", 0) + 1, "err": str(e)[:120]}
             log(f"목록 {sid} 실패 (직전 것 유지): {e}")
@@ -508,6 +512,22 @@ def find_isbn(w, kc: Cache):
     return best
 
 
+def deep(x, out=None):
+    """응답이 몇 겹으로 싸여 있든 키를 찾음 (먼저 나온 값)."""
+    if out is None:
+        out = {}
+    if isinstance(x, dict):
+        for k, v in x.items():
+            if isinstance(v, (dict, list)):
+                deep(v, out)
+            elif k not in out and v not in (None, ""):
+                out[k] = v
+    elif isinstance(x, list):
+        for v in x[:3]:
+            deep(v, out)
+    return out
+
+
 def y24(path, isbn):
     d = get(f"https://apis.yes24.com/v1/goods/{path}", params={"searchType": "ISBN13", "query": isbn, "detail": "Y"},
             headers={"X-Api-Key": YES24}, kind="yes24")
@@ -516,17 +536,33 @@ def y24(path, isbn):
         DOWN.add("yes24"); log("  YES24가 막혀 이번엔 그만 (열쇠·한도 확인)"); return None
     if d.get("__404") or not d.get("success"):
         return {}
-    x = d.get("data")
-    while isinstance(x, dict) and isinstance(x.get("data"), (dict, list)):
-        x = x["data"]
-    if isinstance(x, list):
-        x = x[0] if x else None
-    return x
+    smp = ST / f"y24_sample_{path}.json"                              # 응답 모양 기록 (열쇠는 안 들어감) — 고칠 때 보려고
+    if not smp.exists():
+        jsave(smp, d, compact=False)
+    out = deep(d.get("data"))
+    cd = None
+
+    def find_cd(x):
+        if isinstance(x, dict):
+            if isinstance(x.get("contentDetail"), dict):
+                return x["contentDetail"]
+            for v in x.values():
+                r = find_cd(v)
+                if r: return r
+        if isinstance(x, list):
+            for v in x:
+                r = find_cd(v)
+                if r: return r
+        return None
+    cd = find_cd(d.get("data"))
+    if cd:
+        out["contentDetail"] = cd
+    return out
 
 
 def yes24_info(isbn, yc: Cache):
     hit = yc.get(isbn)
-    if hit is not None:
+    if hit is not None and not hit.get("_redo"):
         return hit
     if not YES24 or "yes24" in DOWN:
         return None
@@ -534,18 +570,27 @@ def yes24_info(isbn, yc: Cache):
     if g is None:
         return None
     out = {}
+    if hit and hit.get("_redo"):                                      # 상세만 다시 (목차는 이미 있음)
+        old_toc = hit.get("toc", "")
+    else:
+        old_toc = None
     if g:
         cd = g.get("contentDetail") or {}
-        out = {"cv": g.get("cover") or "", "url": g.get("link") or "", "pg": g.get("pages"), "ot": g.get("originalTitle") or "",
-               "cat": g.get("goodsSortNm") or g.get("categoryName") or "", "eb": g.get("eBookLink") or "", "ebid": g.get("ebookId"),
+        out = {"cv": g.get("cover") or g.get("coverLarge") or g.get("image") or "", "url": g.get("link") or g.get("mobileLink") or "", "pg": g.get("pages") or g.get("page"),
+               "ot": g.get("originalTitle") or "", "cat": g.get("categoryFullPath") or g.get("goodsSortNm") or g.get("categoryName") or "",
+               "eb": g.get("eBookLink") or g.get("ebookLink") or "", "ebid": g.get("ebookId"),
                "star": g.get("starScore"), "intro": clean(cd.get("introduce") or cd.get("intro") or cd.get("summary") or "")[:900],
                "toc": (cd.get("toc") or cd.get("contents") or "")}
-        if not out["toc"]:
+        if not out["toc"] and old_toc:
+            out["toc"] = old_toc
+        if not out["toc"] and old_toc is None:
             c = y24("content", isbn)
             if c is None:
                 return None
             out["toc"] = c.get("contents") or ""
         out["toc"] = clean_toc(out["toc"])
+    elif hit and hit.get("_redo"):
+        out = {k: v for k, v in hit.items() if k != "_redo"}
     yc.put(isbn, out)
     return out
 
@@ -595,6 +640,10 @@ def wd_author(name, wc: Cache):
     if s is None:
         DOWN.add("wd"); log("  위키데이터가 막혀 이번엔 그만 (다음 실행에 이어서)"); return None
     ids = [x["id"] for x in s.get("search") or []]
+    q2 = re.sub(r"\s+[A-Z]\.?\s+", " ", q).replace("  ", " ")
+    if not ids and q2 != q:
+        s2 = get("https://www.wikidata.org/w/api.php", params={"action": "wbsearchentities", "search": q2, "language": lang, "uselang": "ko", "type": "item", "limit": 6, "format": "json"}, kind="wd")
+        ids = [x["id"] for x in (s2 or {}).get("search") or []]
     res = {}
     if ids:
         e = get("https://www.wikidata.org/w/api.php", params={"action": "wbgetentities", "ids": "|".join(ids), "props": "claims|labels|sitelinks", "languages": "ko|en", "sitefilter": "enwiki|kowiki", "format": "json"}, kind="wd")
@@ -875,7 +924,7 @@ def main():
             docs = kakao_search(isbn, "isbn", 1)
             if docs is not None:
                 kc.put(isbn, kakao_slim(docs[0]) if docs else {})
-        if isbn and YES24 and yc.get(isbn) is None and CALLS["yes24"] < budget["yes24"]:
+        if isbn and YES24 and (yc.get(isbn) is None or (yc.get(isbn) or {}).get("_redo")) and CALLS["yes24"] < budget["yes24"]:
             yes24_info(isbn, yc)
             # 목차가 없으면 같은 책 다른 판에서
             if not (yc.get(isbn) or {}).get("toc"):
@@ -1002,7 +1051,9 @@ def main():
     # 순위: 추천한 곳 수 → 대학 수 → 목차 있음
     rows.sort(key=lambda r: (-r[9], -r[14], 0 if "t" in r[12] else 1, r[1]))
     cols = ["id", "t", "a", "cv", "cv2", "f", "n", "e", "l", "r", "s", "y", "x", "pg", "u", "y0", "y1", "new"]
-    jsave(OUT / "all.json", {"cols": cols, "rows": rows})
+    KP = "https://contents.kyobobook.co.kr/sih/fit-in/300x0/pdt/"
+    short = lambda u: ("k:" + u[len(KP):-4]) if isinstance(u, str) and u.startswith(KP) and u.endswith(".jpg") else u  # noqa: E731
+    jsave(OUT / "all.json", {"cols": cols, "kp": KP, "rows": [r[:3] + [short(r[3]), short(r[4])] + r[5:] for r in rows]})
     jsave(OUT / "top.json", {"cols": cols, "rows": rows[:400]})
     # 상세: id 앞 두 글자로 나눠 저장 (256 조각)
     shards = {}

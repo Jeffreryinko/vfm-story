@@ -927,7 +927,7 @@ function after(s,k){
   <div class="row">${deepLv?`<button class="btn primary" data-act="deepen" data-id="${s.id}" data-lv="${deepLv}">${deepLv===3?"더 깊이 읽기 · Claude가 이어 쓰기":"조금 더 자세히"}</button>`:""}${nx?`<button class="btn ${deepLv?"":"primary"}" data-act="open" data-id="${s.id}" data-d="${nx}" data-mark="${k}">${nxLabel}</button>`:""}
   <button class="btn" data-act="other" data-id="${s.id}">다른 이야기</button>
   ${D?D.bar("iyagi",s.id,{kw:[s.orig||s.title].concat((s.tags||[]).slice(-2)),title:s.title,url:appUrl("#read-"+s.id),text:s.title+(s.hook?"\n"+s.hook:"")}):""}
-  <button class="btn ${isSaved(s.id)?"saved":""}" data-act="save" data-id="${s.id}">${isSaved(s.id)?"담아둠":"담아두기"}</button></div></div>`;
+  <button class="btn ${isSaved(s.id)?"saved":""}" data-act="save" data-id="${s.id}">${isSaved(s.id)?"담아둠":"담아두기"}</button></div><div class="bookrel" data-k="read-${s.id}"></div></div>`;
 }
 /* ───────── 그림: 이야기마다 자동으로 그리는 표지 + Claude가 그린 삽화 ───────── */
 function hashStr(x){let h=2166136261;for(const c of String(x)){h^=c.codePointAt(0);h=Math.imul(h,16777619)}return h>>>0}
@@ -2647,7 +2647,7 @@ function renderOrig(){
     <p class="warn">${o.tr&&mode!=="en"?"한국어는 무료 번역 모델(NLLB)이 기계로 옮긴 글이라 어색하거나 빠진 문장이 있을 수 있어요. 헷갈리면 ‘나란히’나 ‘영어 원문’을 보세요. ":"영어 원문 그대로입니다. "}프로젝트 구텐베르크에서 가져온 공공 영역 글이고, 이용 조건은 <a class="link" href="${o.url}" target="_blank" rel="noopener">원본 쪽</a>에 있어요.</p>
     <p class="note">${n} / ${o.parts} 부분</p>
     <div class="otext" id="otext"><p class="sub">불러오는 중…</p></div>
-    <div class="onav" id="onav"></div></article>`;
+    <div class="onav" id="onav"></div><div class="bookrel" data-k="orig-${o.id}"></div></article>`;
   const get=u=>fetch(u).then(r=>{if(!r.ok)throw 0;return r.json()});
   Promise.all([mode!=="ko"?get(`../data/iyagi/orig/${o.id}-${n}.json`):null,mode!=="en"?get(`../data/iyagi/orig/k${o.id}-${n}.json`):null]).then(([en,ko])=>{
     if(ui.view!=="orig"||ui.oid!==o.id||ui.onum!==n)return;
@@ -3251,4 +3251,13 @@ route();
 
 <script src="../assets/wikithumb.js"></script>
 <script src="../assets/shell.js"></script>
+<script>
+/* 책 탭과 잇기: 이 이야기·원문과 맞는 권장도서 (data/book/link.json, 책 로봇이 만듦) */
+(function(){var L=null,P=null;function fill(){var els=document.querySelectorAll(".bookrel:not([data-done])");if(!els.length)return;
+if(!P)P=fetch("../data/book/link.json",{cache:"no-cache"}).then(function(r){return r.ok?r.json():{i:{}}}).catch(function(){return{i:{}}}).then(function(x){L=x;return x});
+P.then(function(){els.forEach(function(el){el.setAttribute("data-done","1");var l=((L&&L.i)||{})[el.getAttribute("data-k")]||[];if(!l.length)return;
+var e=function(t){return String(t||"").replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})};
+el.innerHTML='<p class="eyebrow" style="margin:18px 0 6px">이 이야기가 나오는 권장도서</p>'+l.slice(0,6).map(function(b){return '<a class="btn" style="margin:0 6px 6px 0;display:inline-block;text-decoration:none" href="../book/#b='+e(b[0])+'">📖 '+e(b[1])+(b[2]?' · '+e(b[2]):"")+"</a>"}).join("")})})}
+new MutationObserver(fill).observe(document.documentElement,{childList:true,subtree:true});fill()})();
+</script>
 </body></html>

@@ -123,10 +123,12 @@ function ago(iso) { if (!iso) return ""; const m = Math.round((Date.now() - Date
 const STN = { want: "읽고 싶음", reading: "읽는 중", done: "다 읽음" };
 
 let IDX = null, TOP = null, ALL = null, COLS = null, SHARD = {}, SRCD = {}, LINK = null;
-const row2o = r => { const o = {}; COLS.forEach((c, i) => o[c] = r[i]); return o; };
+let KP = "https://contents.kyobobook.co.kr/sih/fit-in/300x0/pdt/";
+const ku = u => typeof u === "string" && u.startsWith("k:") ? KP + u.slice(2) + ".jpg" : u;      // 교보 표지 주소는 줄여 담음
+const row2o = r => { const o = {}; COLS.forEach((c, i) => o[c] = r[i]); o.cv = ku(o.cv); o.cv2 = ku(o.cv2); return o; };
 async function loadTop() { const [i, t] = await Promise.all([getJ("_index.json"), getJ("top.json")]); IDX = i; COLS = t.cols; TOP = t.rows.map(row2o); }
 let allP = null;
-function loadAll() { if (!allP) allP = getJ("all.json").then(x => { ALL = x.rows.map(row2o); ALL.forEach((b, i) => b.rank = i + 1); return ALL; }); return allP; }
+function loadAll() { if (!allP) allP = getJ("all.json").then(x => { if (x.kp) KP = x.kp; ALL = x.rows.map(row2o); ALL.forEach((b, i) => b.rank = i + 1); return ALL; }); return allP; }
 async function detail(id) { const sh = id.slice(1, 3); if (!SHARD[sh]) SHARD[sh] = await getJ("w/" + sh + ".json"); return SHARD[sh][id]; }
 async function srcList(id) { if (!SRCD[id]) SRCD[id] = await getJ("src/" + id + ".json"); return SRCD[id]; }
 const SRCMAP = () => Object.fromEntries(((IDX && IDX.sources) || []).map(s => [s.id, s]));
