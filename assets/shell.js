@@ -15,8 +15,8 @@
   var APP = (window.vfm && window.vfm.app) || window.VFM_APP || "sisa";
   var HOME = APP === "home";
   var ROOT = HOME ? "./" : "../";
-  var APPS = [["iyagi","이야기"],["history","역사"],["brain","뇌"]];
-  var NAME = { home: "홈", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", baedat: "배댓", mental: "맨탈", box: "보관함" };
+  var APPS = [["iyagi","이야기"],["history","역사"],["brain","뇌"],["book","책"]];
+  var NAME = { home: "홈", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", book: "책", baedat: "배댓", mental: "맨탈", box: "보관함" };
   try { if (!HOME) localStorage.setItem("vfm:tab", APP); } catch (e) { }
 
   /* ── 글 다듬기: 첫 문단 괄호 속 외국어 표기(조지아어·벵골어 등)는 폰에서 □□□ 로 깨지고 앞부분을 다 차지함 → 뺌.
@@ -135,7 +135,7 @@
   }
   function paintDot() {
     var dot = document.querySelector(".vfm-seg .vfm-dot"); if (!dot) return;
-    dot.className = "vfm-dot " + (!meta || !meta.updatedAt ? "none" : (Date.now() - Date.parse(meta.updatedAt) > (APP === "sisa" ? 6 : APP === "tools" ? 12 : APP === "brain" ? 18 : 30) * 3600e3 ? "old" : ""));
+    dot.className = "vfm-dot " + (!meta || !meta.updatedAt ? "none" : (Date.now() - Date.parse(meta.updatedAt) > (APP === "sisa" ? 6 : APP === "tools" ? 12 : APP === "brain" ? 18 : APP === "book" ? 50 : 30) * 3600e3 ? "old" : ""));
     dot.title = meta && meta.updatedAt ? "마지막 갱신 " + ago(meta.updatedAt) : "갱신 기록 없음";
   }
   function loadMeta() { if (HOME) return; return getJ("data/" + APP + "/_meta.json").then(function (m) { meta = m; paintDot(); }); }
@@ -296,7 +296,7 @@
     APPS.forEach(function (a) {
       getJ("data/" + a[0] + "/_meta.json").then(function (m) { var el = back.querySelector('[data-u="' + a[0] + '"] .v'); if (el) el.textContent = m && m.updatedAt ? ago(m.updatedAt) + (m.label ? " · " + m.label : "") : "기록 없음"; });
     });
-    var HL = [["trends", "트렌드", "sisa"], ["ai", "AI", "ai"], ["history", "역사", "history"], ["tools", "도구", "tools"], ["brain", "뇌", "brain"]].filter(function (h) { return APPS.some(function (a) { return a[0] === h[2]; }); });   // 이 사이트 앱의 출처만
+    var HL = [["trends", "트렌드", "sisa"], ["ai", "AI", "ai"], ["history", "역사", "history"], ["tools", "도구", "tools"], ["brain", "뇌", "brain"], ["book", "책", "book"]].filter(function (h) { return APPS.some(function (a) { return a[0] === h[2]; }); });   // 이 사이트 앱의 출처만
     Promise.all(HL.map(function (h) { return getJ("data/" + h[0] + "/_index.json"); })).then(function (r) {
       var el = back.querySelector("#vfmHealth"); if (!el) return;
       if (!HL.length) { el.innerHTML = '<div><span>자동 수집 출처</span><span class="v">이 사이트는 매월 한 번만 모아요</span></div>'; return; }

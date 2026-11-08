@@ -511,6 +511,7 @@ async function renderPage(id) {
     <div id="body">${depthHtml[d]}</div>
     <h2 class="sec">이어 읽기 <small>역사는 선으로</small></h2><div class="rel" id="rel"></div><div id="relBox"></div>
     ${(p.links || []).length ? `<h2 class="sec">이 글에 나오는 다른 글</h2><div class="chips" id="lnk"><span class="sub">찾는 중…</span></div>` : ""}
+    <div id="bookBox"></div>
     <h2 class="sec">내 메모</h2><textarea class="memo" id="memo" placeholder="내 말로 적어 두기 (별표하면 같이 보관)">${esc(S.memo[id] || "")}</textarea>
     <div class="src">출처: <a href="${esc(p.src.url)}" target="_blank" rel="noopener">한국어 위키백과 ‘${esc(p.title)}’</a> (${esc(p.src.license)}) · 위키백과 글 고친 날 ${esc(p.src.edited || "")} · 로봇이 받은 날 ${esc(p.at || "")}${p.qid ? ` · <a href="https://www.wikidata.org/wiki/${esc(p.qid)}" target="_blank" rel="noopener">위키데이터</a>` : ""}${p.en ? ` · <a href="https://en.wikipedia.org/wiki/${encodeURIComponent(p.en.replace(/ /g, "_"))}" target="_blank" rel="noopener">영문판</a>` : ""}<br>
       <span class="sub">분류: ${esc((p.cats || []).slice(0, 8).join(" · "))}</span><br><span class="sub">위키백과 글을 로봇이 토큰 없이 잘라 둔 것이에요. 연도·나라·테마는 위키데이터 속성으로 자동으로 붙여 틀릴 수 있어요.</span></div>
@@ -530,6 +531,7 @@ async function loadLive(p, open) {
   } catch (e) { if (box) box.innerHTML = `못 불러왔어요 — <a href="${esc(p.src.url)}" target="_blank" rel="noopener">위키백과에서 읽기</a>`; }
 }
 async function renderRelations(p, e) {
+  bookBox(p);
   const rel = document.getElementById("rel"); if (!rel) return;
   const r = p.rel || {};
   const resolve = async list => { const out = []; for (const [name, ko] of list || []) { const id = ko ? await idOf(ko) : null; out.push({ i: id, t: ko || name, wiki: ko && !id ? ko : null, plain: !ko }); } return out; };
@@ -548,6 +550,12 @@ async function renderRelations(p, e) {
   const lnk = document.getElementById("lnk");
   if (lnk) { const hits = []; for (const t of (p.links || []).slice(0, 30)) { const id = await idOf(t); if (id && id !== p.id) hits.push({ i: id, t }); if (hits.length >= 16) break; } if (S.page !== p) return;
     lnk.innerHTML = hits.map(x => `<button data-open="${x.i}" class="${S.read[x.i] ? "" : "on"}">${esc(x.t)}</button>`).join("") || '<span class="sub">아직 받은 글 중엔 없어요 (로봇이 더 받으면 생겨요)</span>'; }
+}
+let BOOKLINK = null;
+async function bookBox(p) {   // 책 탭과 잇기: 이 글(사람·책)과 맞는 권장도서
+  try { if (!BOOKLINK) BOOKLINK = await fetch("../data/book/link.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : { h: {} }); } catch (e) { BOOKLINK = { h: {} }; }
+  const l = (BOOKLINK.h || {})[p.id] || []; const el = document.getElementById("bookBox"); if (!el || !l.length || S.page !== p) return;
+  el.innerHTML = `<h2 class="sec">이 주제 권장도서 <small>대학·기관이 권한 책</small></h2><div class="chips">${l.slice(0, 12).map(([id, t, a]) => `<a style="text-decoration:none;padding:7px 13px;border-radius:999px;background:var(--ap-fill);font-size:14px;color:var(--ink)" href="../book/#b=${esc(id)}">📖 ${esc(t)}${a ? ` <small>${esc(a)}</small>` : ""}</a>`).join("")}</div>`;
 }
 function relList(l) { return l.map(x => x.i ? (x.n != null || x.y !== undefined ? card(x) : `<button class="card" data-open="${x.i}"><p class="t">${esc(x.t)}</p></button>`) : x.wiki ? `<a class="card" href="https://ko.wikipedia.org/wiki/${encodeURIComponent(x.wiki.replace(/ /g, "_"))}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit"><p class="t">${esc(x.t)} ↗</p><p class="one">아직 안 받은 글 — 위키백과에서 열기</p></a>` : `<div class="card"><p class="t">${esc(x.t)}</p></div>`).join(""); }
 

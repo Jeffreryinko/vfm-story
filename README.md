@@ -1,6 +1,6 @@
 # 이야기 자판기 (vfm-story)
 
-**이야기 · 역사 · 뇌** — 자판기를 세 사이트로 나눈 것 중 하나예요 (2026-11-08). 서버 없이 GitHub 하나로 돌아가요 (카드 결제 0원, 유지 토큰 0).
+**이야기 · 역사 · 뇌 · 책** — 자판기를 세 사이트로 나눈 것 중 하나예요 (2026-11-08). 서버 없이 GitHub 하나로 돌아가요 (카드 결제 0원, 유지 토큰 0).
 - 주소: https://jeffreryinko.github.io/vfm-story/
 - 다른 자판기: [시사 자판기](https://jeffreryinko.github.io/vendingForMe/) (시사·도구·AI) · [사람 자판기](https://jeffreryinko.github.io/vfm-mind/) (배댓·맨탈)
 - 같은 주소(jeffreryinko.github.io)라서 폰에 저장된 별표·메모·보관함은 세 사이트가 함께 써요.
@@ -11,6 +11,7 @@
 | 이야기 위키 로봇 `robot/iyagi_wiki.py` | 이야기 목록 약 1,500개를 위키백과에서 모아 정리, 영어 문서는 무료 번역(NLLB). **예전 클로드 '작가' 예약 작업 대신** · 요청 들어온 이야기 먼저 | 매일 03:40 (`iyagi-wiki.yml`) |
 | 원문 번역 로봇 `robot/iyagi_translate.py` | 고전 원문 기계번역 | 주 2회 (`iyagi-orig.yml`) |
 | 뇌 로봇 `robot/brain_run.py` | 뇌과학 소식 + 부위 찾기 | 07:20 · 19:20 (`brain.yml`) |
+| 책 로봇 `robot/book_run.py` | 대학·기관 권장도서 모으기 → 같은 책 묶기 → 표지·소개·목차·전자책·분류 | 매일 03:10 (목록은 7일, 옛 판은 30일마다) (`book.yml`) |
 
 ## 역사 탭 자료 (`data/history/`)
 본문은 한국어 위키백과(CC BY-SA 4.0), 속성은 위키데이터(CC0). 색인 한 줄은 배열 — 칸 순서는 `_index.json` 의 `cols`.
@@ -33,3 +34,13 @@
 - `news.json` 소식 30일치(부위 `rs` 붙음) · `_index.json` 부위별 기사 수·출처 상태 · `wiki.json` 위키백과 첫 문단
 - 외우기 기록은 폰 `vfm:brain:*` (srs = 부위별 상자·다음 복습일). 구글 로그인하면 기기끼리 맞춤
 - 가족 점수판: Supabase 표 `brain_board` — 만드는 SQL 은 `robot/brain_board.sql` (한 번만 실행)
+
+## 책 탭 자료 (`data/book/`)
+출처표는 `robot/book_sources.py` 하나 — 목록 더하기·분류 낱말 고치기는 여기만.
+- 목록: 교보문고 추천도서(열쇠 없이 열린 목록 자료) 21개 · 대학 도서관 Pyxis 특별 컬렉션(한양·인하·중앙·동국·숭실) · 포스텍 페이지 · 손 정리 목록 `robot/book_lists/*.tsv`(연세 200선·고려대 학과별 — 사이트가 로봇을 막아 한 번 정리) · 웨이백 머신 옛 판(연세 2017~2023)
+- 열쇠(GitHub 비밀 설정, 없으면 그 부분만 건너뜀): `KAKAO_REST_KEY`(ISBN 찾기·표지·소개) · `YES24_API_KEY`(목차·큰 표지·쪽수·원제·전자책, 하루 5,000회) · `NLK_API_KEY`(십진분류·목차 파일·사서추천 30년치). 알라딘 Open API 는 2026-10-30 종료라 안 씀
+- `all.json` 모든 책 한 줄씩(칸 순서 `cols`) · `top.json` 첫 화면 400권 · `w/<id 2~3번째 글자>.json` 책 상세(소개·목차·추천처와 연도·링크) · `src/<출처>.json` 출처별 판(연도)마다 들어 있던 책 → 학교별 '해마다 무엇이 바뀌었나' · `link.json` 역사·이야기 글과 잇기
+- 표지는 저장하지 않고 주소만 (YES24 → 교보 → 카카오 순으로, 안 뜨면 다음 주소)
+- 저작권이 끝난 고전(지은이 1955년 이전 사망): 한국어 위키문헌은 책 화면에서 바로, 구텐베르크 영어 원문은 이야기 앱 '원문 읽기'에 더해져 원문 번역 로봇이 한국어로 옮김
+- `_state/` 로봇 기억: `raw.json` 받은 목록 · `kakao.json`·`yes24.json`·`nlk.json`·`wd_author.json` 찾아 둔 정보 · `isbn_of.json` 손 목록 제목→ISBN · `first_seen.json`
+- 수동 실행: Actions → 책 로봇 → Run workflow (lists: yes = 목록 지금 새로)

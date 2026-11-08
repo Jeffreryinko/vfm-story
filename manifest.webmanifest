@@ -1,7 +1,7 @@
 {
  "name": "이야기 자판기",
  "short_name": "이야기 자판기",
- "description": "시사 자판기 + 이야기 도서관 + AI 논문",
+ "description": "이야기 · 역사 · 뇌 · 책 (대학·기관 권장도서)",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",

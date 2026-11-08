@@ -26,7 +26,7 @@ input.q,textarea{width:100%;box-sizing:border-box;border:0;border-radius:12px;pa
 .row .tk{flex:none;border:0;background:var(--ap-fill);color:var(--ap-label);border-radius:10px;padding:6px 9px;font:inherit;font-size:13px}
 .tag{display:inline-block;font-weight:700;font-size:11.5px;padding:1px 7px;border-radius:999px;margin-right:6px;background:var(--ap-fill);vertical-align:1px}
 .tag.sisa{color:var(--ap-blue-t);background:color-mix(in srgb,var(--ap-blue) 14%,transparent)}.tag.iyagi{color:var(--ap-orange-t);background:color-mix(in srgb,var(--ap-orange) 15%,transparent)}
-.tag.ai{color:var(--ap-purple-t);background:color-mix(in srgb,var(--ap-purple) 14%,transparent)}.tag.history{color:#8a5a2b;background:rgba(160,110,60,.15)}.tag.tools{color:var(--ap-teal);background:color-mix(in srgb,var(--ap-teal) 16%,transparent)}.tag.brain{color:#C2185B;background:rgba(224,69,123,.15)}
+.tag.ai{color:var(--ap-purple-t);background:color-mix(in srgb,var(--ap-purple) 14%,transparent)}.tag.history{color:#8a5a2b;background:rgba(160,110,60,.15)}.tag.tools{color:var(--ap-teal);background:color-mix(in srgb,var(--ap-teal) 16%,transparent)}.tag.book{color:#2E7D32;background:rgba(52,168,83,.15)}.tag.brain{color:#C2185B;background:rgba(224,69,123,.15)}
 h2{font-size:20px;font-weight:800;margin:20px 2px 6px;letter-spacing:-.02em}h2 small{font-weight:500;font-size:13px;color:var(--ap-label2);margin-left:6px}
 .card{background:var(--ap-surface);border-radius:14px;padding:14px;margin:10px 0}
 .card .qh{display:flex;align-items:center;gap:8px}.card .qh p{flex:1;margin:0;font-weight:700;font-size:16.5px}
@@ -51,8 +51,8 @@ h2{font-size:20px;font-weight:800;margin:20px 2px 6px;letter-spacing:-.02em}h2 s
 <script>
 (function () {
   "use strict";
-  var APPN = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", mix: "홈" };
-  var PATH = { sisa: "/vendingForMe/sisa/", iyagi: "../iyagi/", ai: "/vendingForMe/ai/", history: "../history/", tools: "/vendingForMe/tools/", brain: "../brain/", mix: "../" };
+  var APPN = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", book: "책", mix: "홈" };
+  var PATH = { sisa: "/vendingForMe/sisa/", iyagi: "../iyagi/", ai: "/vendingForMe/ai/", history: "../history/", tools: "/vendingForMe/tools/", brain: "../brain/", book: "../book/", mix: "../" };
   var S = { v: "saved", app: "", q: "", wk: 0, open: {} };
   var esc = function (t) { return String(t == null ? "" : t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
   var g = function (k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
@@ -66,7 +66,7 @@ h2{font-size:20px;font-weight:800;margin:20px 2px 6px;letter-spacing:-.02em}h2 s
     var out = [];
     var likes = g("vfm:likes", {});
     Object.keys(likes).forEach(function (k) { var x = likes[k]; out.push({ app: x.app, key: x.key, title: x.t || x.key, url: x.h ? PATH[x.app] + x.h : x.u, at: x.at || 0, how: "좋아요" }); });
-    [["ai", function (id, it) { return "/vendingForMe/ai/#p=" + encodeURIComponent(id); }], ["history", function (id) { return "../history/#p=" + encodeURIComponent(id); }], ["tools", function (id) { return "/vendingForMe/tools/#f=" + encodeURIComponent(id); }], ["brain", function (id) { return /^n:/.test(id) ? "../brain/#news" : "../brain/#r=" + encodeURIComponent(id); }]].forEach(function (a) {
+    [["ai", function (id, it) { return "/vendingForMe/ai/#p=" + encodeURIComponent(id); }], ["history", function (id) { return "../history/#p=" + encodeURIComponent(id); }], ["tools", function (id) { return "/vendingForMe/tools/#f=" + encodeURIComponent(id); }], ["book", function (id) { return "../book/#b=" + encodeURIComponent(id); }], ["brain", function (id) { return /^n:/.test(id) ? "../brain/#news" : "../brain/#r=" + encodeURIComponent(id); }]].forEach(function (a) {
       var st = g("vfm:" + a[0] + ":star", {}), memo = g("vfm:" + a[0] + ":memo", {});
       Object.keys(st).forEach(function (id) { var x = st[id] || {}, it = x.item || {}; out.push({ app: a[0], key: id, title: it.ko || it.t || it.title || id, url: a[1](id, it), at: x.at || 0, memo: memo[id] || x.memo || "", tags: x.tags || [], how: "별표" }); });
       Object.keys(memo).forEach(function (id) { if (!st[id] && memo[id]) out.push({ app: a[0], key: id, title: id, url: a[1](id), at: 0, memo: memo[id], how: "메모" }); });

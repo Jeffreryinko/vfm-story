@@ -30,6 +30,7 @@
   .ic.history{background:linear-gradient(160deg,#C9A57A 0%,#A2845E 55%,#7A5F3E 100%)}
   .ic.tools{background:linear-gradient(160deg,#6FDCEB 0%,#30B0C7 55%,#0A7A8C 100%)}
   .ic.brain{background:linear-gradient(160deg,#FF9DBD 0%,#E0457B 55%,#A3124A 100%)}
+  .ic.book{background:linear-gradient(160deg,#7FD98E 0%,#34A853 55%,#1B6E33 100%)}
   .ic.box{background:linear-gradient(160deg,#9DA3AF 0%,#6B7280 55%,#4B5160 100%)}
   .nm{font:700 20px/1.2 var(--ap-display);letter-spacing:-.02em;margin:0}
   .ds{font-size:14px;color:var(--ap-label2);margin:3px 0 0;line-height:1.35}
@@ -79,6 +80,11 @@
       <span><p class="nm">뇌</p><p class="ds">뇌 부위 52개 외우기 · 뇌과학 소식</p><p class="st" id="st-brain"><i></i><span>불러오는 중</span></p></span>
       <span class="chev">›</span>
     </button>
+    <button class="app" data-app="book">
+      <span class="ic book"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M8 7h8M8 10.5h6"/></svg></span>
+      <span><p class="nm">책</p><p class="ds">대학·기관 권장도서 · 목차·표지·전자책</p><p class="st" id="st-book"><i></i><span>불러오는 중</span></p></span>
+      <span class="chev">›</span>
+    </button>
     <button class="app" data-app="box">
       <span class="ic box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M3 4h18v4H3z"/><path d="M10 12h4"/></svg></span>
       <span><p class="nm">보관함</p><p class="ds">모든 앱에서 저장한 것 · 내 질문 · 이번 주 생각</p><p class="st" id="st-box"><i class="ok"></i><span id="boxN">이 폰 안에만 있어요</span></p></span>
@@ -125,7 +131,7 @@
   j("data/roadmap.json").then(function (r) {
     var box = document.getElementById("plan"); if (!box) return;
     if (!r || !r.items || !r.items.length) { box.innerHTML = '<div class="it"><div class="d">예정된 일이 없어요</div></div>'; return; }
-    var NM = { mental: "맨탈", baedat: "배댓", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌" };
+    var NM = { mental: "맨탈", baedat: "배댓", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", book: "책" };
     function e(x) { return String(x || "").replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
     box.innerHTML = r.items.map(function (it) {
       return '<div class="it"><div class="t"><span class="tag">' + e(NM[it.app] || it.app) + '</span>' + e(it.t) + (it.who === "me" ? '<span class="tag me">내가 할 일</span>' : "") + '</div><div class="d">' + e(it.d) + "</div></div>";
@@ -139,8 +145,12 @@
     try { var s = JSON.parse(localStorage.getItem("vfm:brain:srs") || "{}"); Object.keys(s).forEach(function (k) { if (s[k].b >= 3) learned++; if (s[k].due <= today) due++; }); } catch (e) { }
     paint("brain", x && x.at, "<b>외움 " + learned + "/52</b>" + (due ? " · 복습 " + due : "") + (x ? " · 새 소식 " + n(x.new) : ""), 18);
   });
+  j("data/book/_index.json").then(function (x) {
+    var mine = 0, rd = 0; try { var s = JSON.parse(localStorage.getItem("vfm:book:star") || "{}"); Object.keys(s).forEach(function (k) { mine++; if (s[k].st === "reading") rd++; }); } catch (e) { }
+    paint("book", x && x.at, x ? "<b>" + n(x.total) + "권</b> · 목차 " + n(x.withToc) + (rd ? " · 읽는 중 " + rd : "") : "", 50);
+  });
   try { var nq = JSON.parse(localStorage.getItem("vfm:box:qs") || "[]").length, nt = JSON.parse(localStorage.getItem("vfm:box:think") || "[]").length; if (nq || nt) document.getElementById("boxN").textContent = "질문 " + nq + " · 생각 " + nt; } catch (e) { }
-  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", baedat: "배댓", mental: "맨탈" }, lastApp = null;
+  var NAME = { sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", book: "책", baedat: "배댓", mental: "맨탈" }, lastApp = null;
   try { lastApp = localStorage.getItem("vfm:tab"); } catch (e) { }
   if (NAME[lastApp]) document.getElementById("last").innerHTML = "&nbsp;지난번에 본 곳: " + NAME[lastApp];
 

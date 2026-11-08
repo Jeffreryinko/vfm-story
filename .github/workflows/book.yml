@@ -1,0 +1,74 @@
+name: 책 로봇 (매일 빈 정보 채우기 · 목록은 7일마다, 토큰 0)
+
+on:
+  push:                        # 로봇·출처표를 고치면 바로 한 번
+    branches: [main]
+    paths: ["robot/book_run.py", "robot/book_sources.py", "robot/book_lists/**", ".github/workflows/book.yml"]
+  schedule:
+    - cron: "10 18 * * *"      # 한국시간 03:10
+  workflow_dispatch:
+    inputs:
+      lists:
+        description: "목록 지금 새로 받기 — yes"
+        required: false
+      minutes:
+        description: "최대 실행 분 (기본 100)"
+        required: false
+
+concurrency:
+  group: data-book
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  guard:   # GitHub 자체 예약(예비)으로 깨어났는데 최근에 이미 돌았으면 건너뜀
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      skip: ${{ steps.g.outputs.skip }}
+    steps:
+      - id: g
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WINDOW_MIN: "600"
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then echo "skip=0" >> "$GITHUB_OUTPUT"; exit 0; fi
+          ref="${GITHUB_WORKFLOW_REF%%@*}"; wf="${ref##*/}"
+          last=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/runs?per_page=10" --jq "[.workflow_runs[] | select(.id != $GITHUB_RUN_ID) | select(.conclusion == \"success\" or .status == \"in_progress\" or .status == \"queued\") | .created_at][0] // empty" || true)
+          if [ -n "$last" ]; then
+            age=$(( ($(date +%s) - $(date -d "$last" +%s)) / 60 ))
+            echo "지난 실행: $last ($age분 전) · 기준 $WINDOW_MIN분"
+            if [ "$age" -lt "$WINDOW_MIN" ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; echo "→ 최근에 이미 돌았으니 건너뜀"; exit 0; fi
+          fi
+          echo "skip=0" >> "$GITHUB_OUTPUT"
+  book:
+    needs: guard
+    if: needs.guard.outputs.skip != '1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 130
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 라이브러리 설치
+        run: pip install -q requests
+      - name: 권장도서 모으기 · 정보 붙이기
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          YES24_API_KEY: ${{ secrets.YES24_API_KEY }}
+          NLK_API_KEY: ${{ secrets.NLK_API_KEY }}
+          BOOK_MAX_MINUTES: ${{ inputs.minutes || '100' }}
+        run: python -u robot/book_run.py ${{ inputs.lists == 'yes' && '--lists' || '' }}
+      - name: 저장소에 올리기
+        if: always()
+        run: |
+          git config user.name "book-robot"
+          git config user.email "robot@users.noreply.github.com"
+          git add data/book data/iyagi/orig
+          git diff --cached --quiet && echo "변경 없음" && exit 0
+          git commit -m "책: $(TZ=Asia/Seoul date '+%m월 %d일 %H시') 권장도서"
+          for i in 1 2 3 4 5; do git pull --rebase --autostash && git push && break || sleep 15; done

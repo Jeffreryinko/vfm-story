@@ -310,6 +310,26 @@
     }));
   });
 
+  // 책 (오늘의 책): 여러 곳이 함께 권한 권장도서 — 표지는 주소만 (저장 안 함)
+  if (HAS.story) j("data/book/top.json").then(function (b) {
+    if (!b || !b.rows || !b.cols) return;
+    var C = {}; b.cols.forEach(function (c, i) { C[c] = i; });
+    var d0 = Math.floor((Date.now() + 9 * 3600e3) / 864e5), rows = b.rows.filter(function (r) { return r[C.r] >= 2; });
+    rows = rows.slice(d0 * 13 % Math.max(rows.length, 1)).concat(rows.slice(0, d0 * 13 % Math.max(rows.length, 1))).slice(0, 60);
+    add("story", rows.map(function (r) {
+      var id = r[C.id], t = r[C.t], a = r[C.a] || "", cv = r[C.cv] || "", cv2 = r[C.cv2] || "";
+      return { key: "b:" + id, kw: [t], sa: "book", kind: "story", title: t, url: location.origin + location.pathname + "book/#b=" + id, shareText: t + " — " + a, q: t + " " + a,
+        html: function () {
+          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag story">책</span><span>' + r[C.r] + "곳이 함께 추천</span><span>" + esc(r[C.f] || "") + "</span></div>" +
+            '<div style="display:flex;gap:14px;align-items:flex-start;margin:6px 0 10px"><span style="width:96px;flex:none;aspect-ratio:2/3;border-radius:6px;overflow:hidden;background:rgba(127,127,127,.15);display:block">' +
+            (cv ? '<img src="' + esc(cv) + '" data-alt="' + esc(cv2) + '" referrerpolicy="no-referrer" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover" onerror="if(this.dataset.alt){this.src=this.dataset.alt;this.dataset.alt=\'\'}else{this.remove()}">' : "") +
+            '</span><span><h2 class="vdk-t" style="margin:0 0 6px">' + esc(t) + '</h2><p class="vdk-note" style="margin:0">' + esc(a) + (r[C.y] ? " · " + esc(r[C.y]) : "") + "</p></span></div>" +
+            '<p class="vdk-note">대학·기관 권장도서 · 목차와 소개는 책 탭에서</p>' +
+            '<button type="button" class="vdk-more"' + go("book/#b=" + id) + ">책 탭에서 목차 보기 ›</button></div>";
+        } };
+    }));
+  });
+
   /* ── 카드가 보일 때만 더 받아 오기: 시사 기사 목록(그 판), 역사 글 전체 ── */
   var FEEDBY = null, feedP = null, HD = {}, CM = {};
   var SI = (function () { try { return JSON.parse(localStorage.getItem("vfm:mix:si") || "{}"); } catch (e) { return {}; } })();   // 이슈를 볼 때 붙어 있던 기사 수
