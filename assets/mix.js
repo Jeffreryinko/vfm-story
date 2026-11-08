@@ -299,7 +299,7 @@
       var ep = eps[u.id.split("-")[0]] || {};
       return { key: "m:" + u.id, kw: [u.name], sa: "mental", kind: "mental", title: u.name, url: location.origin + location.pathname + "mental/", shareText: u.name + "\n" + (u.principle || ""), q: [u.name, u.scene, u.clue, u.principle].join(" "),
         html: function () {
-          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag mental">멘탈 기술</span>' + (u.cat || []).map(function (c) { return "<span>" + esc(cats[c] || c) + "</span>"; }).join("") + "<span>" + esc(u.id.split("-")[0].replace("x", "시즌 ").replace(/^(\D*\d+)/, "$1 · ") + "화") + "</span></div>" +
+          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag mental">멘탈 기술</span>' + (u.cat || []).map(function (c) { return "<span>" + esc(cats[c] || c) + "</span>"; }).join("") + "<span>" + esc(u.id.replace(/^(\d+)x(\d+).*/, "시즌 $1 · $2화")) + "</span></div>" +
             '<h2 class="vdk-t">' + esc(u.name) + "</h2>" + (ep.titleKo ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(ep.titleKo) + "</p>" : "") +
             (u.scene ? '<p class="vdk-h">장면</p>' + P(u.scene) : "") + (u.clue ? '<p class="vdk-h">단서</p>' + P(u.clue) : "") + (u.principle ? '<p class="vdk-h">원리</p>' + P(u.principle) : "") +
             (u.drill ? '<p class="vdk-h">오늘 해 볼 것</p>' + P(u.drill) : "") + (u.risk ? '<p class="vdk-note">조심: ' + esc(u.risk) + "</p>" : "") +

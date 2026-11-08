@@ -81,7 +81,8 @@
     var h = Math.floor(m / 60); if (h < 48) return h + "시간 전";
     return Math.floor(h / 24) + "일 전";
   }
-  function getJ(p) { return fetch(ROOT + p, { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+  function getJ(p) { if (p.indexOf("data/baedat/") === 0) p = "/vendingForMe/" + p;   // 배댓 자료는 시사 자판기 저장소에
+    return fetch((p.charAt(0) === "/" ? "" : ROOT) + p, { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
 
   /* ── 앱 사이 이동: 기록을 쌓지 않음 ── */
   function openApp(a) {
@@ -295,9 +296,11 @@
     APPS.forEach(function (a) {
       getJ("data/" + a[0] + "/_meta.json").then(function (m) { var el = back.querySelector('[data-u="' + a[0] + '"] .v'); if (el) el.textContent = m && m.updatedAt ? ago(m.updatedAt) + (m.label ? " · " + m.label : "") : "기록 없음"; });
     });
-    Promise.all([getJ("data/trends/_index.json"), getJ("data/ai/_index.json"), getJ("data/history/_index.json"), getJ("data/tools/_index.json"), getJ("data/brain/_index.json")]).then(function (r) {
+    var HL = [["trends", "트렌드", "sisa"], ["ai", "AI", "ai"], ["history", "역사", "history"], ["tools", "도구", "tools"], ["brain", "뇌", "brain"]].filter(function (h) { return APPS.some(function (a) { return a[0] === h[2]; }); });   // 이 사이트 앱의 출처만
+    Promise.all(HL.map(function (h) { return getJ("data/" + h[0] + "/_index.json"); })).then(function (r) {
       var el = back.querySelector("#vfmHealth"); if (!el) return;
-      var rows = [["트렌드", r[0]], ["AI", r[1]], ["역사", r[2]], ["도구", r[3]], ["뇌", r[4]]].map(function (x) {
+      if (!HL.length) { el.innerHTML = '<div><span>자동 수집 출처</span><span class="v">이 사이트는 매월 한 번만 모아요</span></div>'; return; }
+      var rows = HL.map(function (h, i) { return [h[1], r[i]]; }).map(function (x) {
         var ks = Object.keys((x[1] && x[1].broken) || {});
         return "<div><span>" + x[0] + '</span><span class="v">' + (x[1] ? (ks.length ? "고장 " + ks.length + "곳: " + ks.slice(0, 3).join(", ") : "모두 정상") : "자료 없음") + "</span></div>";
       });

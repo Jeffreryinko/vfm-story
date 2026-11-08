@@ -132,13 +132,8 @@
     }).join("");
     document.getElementById("planAt").textContent = r.updatedAt ? "· " + ago(r.updatedAt) + " 정리" : "";
   });
-  j("data/sisa/_meta.json").then(function (m) { paint("sisa", m && m.updatedAt, m ? "<b>새 소식 " + (m.counts ? n(m.counts.new_news != null ? m.counts.new_news : m.counts.new_items) : "") + "</b>" : "", 6); });
   j("data/iyagi/_meta.json").then(function (m) { paint("iyagi", m && m.updatedAt, m ? "<b>새 이야기 " + n(m.stories) + "편</b>" : "", 30); });
-  j("data/ai/_index.json").then(function (x) { var c = (x && x.counts) || {}; paint("ai", x && x.at, x ? "<b>추천 논문 " + n(c.hf) + "편</b>" : "", 30); });
   j("data/history/_index.json").then(function (x) { var c = (x && x.counts) || {}; paint("history", x && x.at, x ? "<b>" + n(c.total) + "편</b>" + (x.queue >= 200 ? " · 받는 중" : "") : "", 30); });
-  j("data/mental/_meta.json").then(function (m) { paint("mental", m && m.updatedAt, m ? "<b>기술 카드 " + n(m.cards) + "장</b> · " + n(m.episodes) + "화 분석" : "", 24 * 365); });
-  j("data/baedat/_meta.json").then(function (m) { paint("baedat", m && m.updatedAt, m ? "<b>" + (m.latest ? Number(m.latest.slice(5)) + "월판" : "") + " 배댓 " + n(m.comments) + "개</b>" : "", 24 * 40); });
-  j("data/tools/_index.json").then(function (x) { paint("tools", x && x.at, x ? "<b>새 것 " + n(x.new) + "개</b>" : "", 12); });
   j("data/brain/_index.json").then(function (x) {
     var learned = 0, due = 0, today = Math.floor((Date.now() + 9 * 3600e3) / 864e5);
     try { var s = JSON.parse(localStorage.getItem("vfm:brain:srs") || "{}"); Object.keys(s).forEach(function (k) { if (s[k].b >= 3) learned++; if (s[k].due <= today) due++; }); } catch (e) { }
