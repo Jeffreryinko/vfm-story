@@ -237,6 +237,11 @@ def main():
         f = OUT / f"{cid}.json"
         if mark_done and f.exists() and json.loads(f.read_text(encoding="utf-8")).get("t"): mark_done("iyagi", cid)
     n = write_index()
+    if done:   # 홈·설정의 '마지막 갱신' 표시용
+        mp = ROOT / "data/iyagi/_meta.json"
+        m = json.loads(mp.read_text(encoding="utf-8")) if mp.exists() else {}
+        m.update({"updatedAt": datetime.now(KST).isoformat(timespec="seconds"), "wiki": n, "by": "iyagi-wiki-robot"})
+        mp.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
     print(f"끝: 이번에 {done}개 · 못 찾음 {miss} · 목록 {n}개")
 
 
