@@ -28,6 +28,8 @@ jobs:
   wiki:
     runs-on: ubuntu-latest
     timeout-minutes: 345
+    env:
+      TG_MINUTES: "20"      # 구글 번역기(TranslateGemma)에 쓸 시간 — 넘으면 NLLB로 이어서
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -41,11 +43,18 @@ jobs:
             /tmp/nllb-600m-ct2
             ~/.cache/huggingface
           key: nllb-600m-ct2-v1
+      - name: 구글 번역 모델 캐시 (TranslateGemma 4B, 약 2.5GB)
+        if: (github.event_name == 'schedule' || inputs.translate == 'yes')
+        uses: actions/cache@v4
+        with:
+          path: /tmp/tgemma
+          key: tgemma-4b-q4km-v1
       - name: 라이브러리 설치
         run: |
           pip install -q requests
           if [ "${{ github.event_name == 'schedule' || inputs.translate == 'yes' }}" = "true" ]; then
             pip install -q "ctranslate2>=4" "transformers>=4.40" sentencepiece "torch>=2.2" --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+            pip install -q llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu || echo "구글 번역기 설치 실패 — 예전 번역기(NLLB)로"
           fi
       - name: 위키백과에서 모으기
         run: python robot/iyagi_wiki.py --max-minutes ${{ inputs.minutes || '150' }} ${{ (github.event_name == 'schedule' || inputs.translate == 'yes') && '--translate' || '' }}

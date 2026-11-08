@@ -2644,7 +2644,7 @@ function renderOrig(){
     <h1 class="title">${esc(o.ko)}</h1>
     <p class="orig">${esc(o.title)} · ${esc(o.author)}</p>
     ${o.tr?`<div class="seg" role="group" aria-label="언어" style="margin-top:14px"><button data-act="olang" data-v="ko" aria-pressed="${mode==="ko"}">한국어</button><button data-act="olang" data-v="both" aria-pressed="${mode==="both"}">나란히</button><button data-act="olang" data-v="en" aria-pressed="${mode==="en"}">영어 원문</button></div>`:""}
-    <p class="warn">${o.tr&&mode!=="en"?"한국어는 무료 번역 모델(NLLB)이 기계로 옮긴 글이라 어색하거나 빠진 문장이 있을 수 있어요. 헷갈리면 ‘나란히’나 ‘영어 원문’을 보세요. ":"영어 원문 그대로입니다. "}프로젝트 구텐베르크에서 가져온 공공 영역 글이고, 이용 조건은 <a class="link" href="${o.url}" target="_blank" rel="noopener">원본 쪽</a>에 있어요.</p>
+    <p class="warn">${o.tr&&mode!=="en"?"한국어는 무료 번역 모델(구글 TranslateGemma, 예전 책은 NLLB)이 기계로 옮긴 글이라 어색하거나 빠진 문장이 있을 수 있어요. 헷갈리면 ‘나란히’나 ‘영어 원문’을 보세요. ":"영어 원문 그대로입니다. "}프로젝트 구텐베르크에서 가져온 공공 영역 글이고, 이용 조건은 <a class="link" href="${o.url}" target="_blank" rel="noopener">원본 쪽</a>에 있어요.</p>
     <p class="note">${n} / ${o.parts} 부분</p>
     <div class="otext" id="otext"><p class="sub">불러오는 중…</p></div>
     <div class="onav" id="onav"></div><div class="bookrel" data-k="orig-${o.id}"></div></article>`;

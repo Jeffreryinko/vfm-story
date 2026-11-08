@@ -49,13 +49,22 @@ jobs:
     if: needs.guard.outputs.skip != '1'
     runs-on: ubuntu-latest
     timeout-minutes: 130
+    env:
+      TG_MINUTES: "15"      # 원서 제목·소개 번역에 쓸 시간
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: 구글 번역 모델 캐시 (TranslateGemma 4B, 약 2.5GB — 원서 제목·소개 번역)
+        uses: actions/cache@v4
+        with:
+          path: /tmp/tgemma
+          key: tgemma-4b-q4km-v1
       - name: 라이브러리 설치
-        run: pip install -q requests
+        run: |
+          pip install -q requests
+          pip install -q llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu || echo "구글 번역기 설치 실패 — 원서 번역 없이"
       - name: 권장도서 모으기 · 정보 붙이기
         env:
           KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}

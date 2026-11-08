@@ -1065,9 +1065,35 @@ def main():
     sc.save()
     jsave(ST / "first_seen.json", first_seen)
 
+    # 번역본 없는 원서(영어 제목·소개) → 구글 TranslateGemma 로 한국어 (기억해 두고 다시 안 함)
+    trm = jload(ST / "tr.json", {}) or {}
+    tg = None
+    if not a.offline and not a.no_net_enrich:
+        try:
+            from tgemma import TG
+            tg = TG.get()
+        except Exception:
+            tg = None
+    foreign = [d for d in details.values() if not re.search(r"[가-힣]", d["t"]) and re.search(r"[A-Za-z]{3}", d["t"])]
+    for d in sorted(foreign, key=lambda d: -len(d.get("shorts") or [])):
+        for k_src, k_dst in (("t", "tko"), ("intro", "iko")):
+            txt = (d.get(k_src) or "").strip()
+            if not txt or re.search(r"[가-힣]", txt):
+                continue
+            key = hashlib.md5(txt.encode()).hexdigest()[:16]
+            if key not in trm and tg is not None and tg.ok() and left() > 120:
+                y = tg.tr(txt[:2500], "en", "ko")
+                if y:
+                    trm[key] = y
+            if key in trm:
+                d[k_dst] = trm[key]
+    jsave(ST / "tr.json", trm)
+    for r in rows:                                                    # 찾기·목록에서도 한국어 제목으로 찾히게 (칸 'tk')
+        r.append((details.get(r[0]) or {}).get("tko", ""))
+
     # 순위: 추천한 곳 수 → 대학 수 → 목차 있음
     rows.sort(key=lambda r: (-r[9], -r[14], 0 if "t" in r[12] else 1, r[1]))
-    cols = ["id", "t", "a", "cv", "cv2", "f", "n", "e", "l", "r", "s", "y", "x", "pg", "u", "y0", "y1", "new"]
+    cols = ["id", "t", "a", "cv", "cv2", "f", "n", "e", "l", "r", "s", "y", "x", "pg", "u", "y0", "y1", "new", "tk"]
     KP = "https://contents.kyobobook.co.kr/sih/fit-in/300x0/pdt/"
     short = lambda u: ("k:" + u[len(KP):-4]) if isinstance(u, str) and u.startswith(KP) and u.endswith(".jpg") else u  # noqa: E731
     jsave(OUT / "all.json", {"cols": cols, "kp": KP, "rows": [r[:3] + [short(r[3]), short(r[4])] + r[5:] for r in rows]})

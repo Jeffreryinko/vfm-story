@@ -146,9 +146,23 @@ def first_sentence(t, n=90):
     return s if len(s) <= n else s[:n - 1] + "…"
 
 
-# ── 영어 앞부분 기계번역 (NLLB, 무료) ──
+# ── 영어 앞부분 기계번역 (구글 TranslateGemma → 없으면 NLLB, 무료) ──
 _tr = None
 def nllb(paras):
+    """영어 문단들 → 한국어. 먼저 구글 TranslateGemma(시간 예산 안), 못 하면 NLLB."""
+    try:
+        from tgemma import TG
+        tg = TG.get()
+    except Exception:
+        tg = None
+    if tg is not None and tg.ok():
+        res = [tg.tr(p, "en", "ko") for p in paras]
+        if all(r for r in res):
+            return res
+    return _nllb(paras)
+
+
+def _nllb(paras):
     global _tr
     if _tr is None:
         import ctranslate2, transformers

@@ -148,7 +148,7 @@ function cover(b, o = {}) {
 }
 function bk(b, o = {}) {
   const sub = o.sub != null ? o.sub : (b.r > 1 ? `${b.r}곳 추천` : (b.a || ""));
-  return `<button class="bk${S.seen[b.id] ? " seen" : ""}" data-b="${b.id}">${cover(b, o)}<p>${esc(b.t)}</p><span>${esc(sub)}</span></button>`;
+  return `<button class="bk${S.seen[b.id] ? " seen" : ""}" data-b="${b.id}">${cover(b, o)}<p>${esc(b.tk || b.t)}</p><span>${esc(b.tk ? b.t : sub)}</span></button>`;
 }
 function li(b, o = {}) {
   return `<button class="li" data-b="${b.id}">${o.n != null ? `<span class="n">${o.n}</span>` : ""}<div class="lcv">${cover(b)}</div><div class="bx"><p class="t">${esc(b.t)}</p>
@@ -245,7 +245,7 @@ function filtered() {
   if (f.src) { const m = SRCMAP(); l = l.filter(b => b.s.some(s => (m[s] || {}).short === f.src)); }
   if (f.x) l = l.filter(b => (b.x || "").includes(f.x));
   if (f.multi) l = l.filter(b => b.r >= 2);
-  if (q) l = l.filter(b => (b.t + b.a).toLowerCase().replace(/\s+/g, "").includes(q));
+  if (q) l = l.filter(b => (b.t + b.a + (b.tk || "")).toLowerCase().replace(/\s+/g, "").includes(q));
   const s = S.sort;
   if (s === "title") l = l.slice().sort((a, b) => a.t.localeCompare(b.t, "ko"));
   else if (s === "year") l = l.slice().sort((a, b) => (b.y || "0").localeCompare(a.y || "0"));
@@ -363,7 +363,7 @@ async function renderBook(id) {
   let h = `<div class="top"><button class="ib" data-act="back" aria-label="뒤로">‹</button><div class="row"><button class="ib" data-act="share" aria-label="공유">⤴︎</button></div></div>`;
   const au = d.au || {};
   const life = au.b || au.d ? ` (${au.b != null ? (au.b < 0 ? "기원전 " + (-au.b) : au.b) : "?"}~${au.d != null ? (au.d < 0 ? "기원전 " + (-au.d) : au.d) : ""})` : "";
-  h += `<div class="bhead">${cover({ ...b, cv: d.cv, cv2: d.cv2 })}<div style="min-width:0"><h1 class="bt">${esc(d.t)}</h1><p class="ba">${esc(d.a || "지은이 미상")}${esc(life)}</p>
+  h += `<div class="bhead">${cover({ ...b, cv: d.cv, cv2: d.cv2 })}<div style="min-width:0"><h1 class="bt">${esc(d.t)}</h1>${d.tko ? `<p class="ba" style="color:var(--accent)">${esc(d.tko)} <small style="color:var(--muted)">(기계번역)</small></p>` : ""}<p class="ba">${esc(d.a || "지은이 미상")}${esc(life)}</p>
     ${d.tr && d.tr.length ? `<p class="bs">옮긴이 ${esc(d.tr.join(", "))}</p>` : ""}<p class="bs">${esc([d.pub, d.y, d.pg ? d.pg + "쪽" : ""].filter(Boolean).join(" · "))}</p>${d.ot ? `<p class="bs">원제 ${esc(d.ot)}</p>` : ""}
     <div style="margin-top:8px">${[["f", d.f], ["n", d.n], ["e", d.e], ["l", d.l]].filter(([, v]) => v && v !== "미상").map(([k, v]) => `<button class="rc g" data-ff="${k}:${esc(v)}">${esc(v)}</button>`).join("")}</div></div></div>`;
   // 추천한 곳 (연도·판까지)
@@ -374,7 +374,8 @@ async function renderBook(id) {
   h += `<div class="box"><div class="stbtn">${Object.entries(STN).map(([k, v]) => `<button data-st="${k}" class="${my.st === k ? "on" : ""}">${v}</button>`).join("")}</div>
     ${my.st === "done" || my.r ? `<div class="stars" style="margin-top:8px">${[1, 2, 3, 4, 5].map(i => `<button data-rate="${i}" class="${(my.r || 0) >= i ? "on" : ""}">★</button>`).join("")}</div>` : ""}</div>`;
   // 소개 · 목차
-  if (d.intro) {
+  if (d.iko) h += `<div class="kv"><h4>책 소개 <span style="font-weight:500;color:var(--muted)">구글 TranslateGemma 기계번역</span></h4><div class="txt">${esc(d.iko)}</div><details style="margin-top:6px"><summary class="note">원문 보기</summary><div class="txt" style="margin-top:6px">${esc(d.intro)}</div></details></div>`;
+  else if (d.intro) {
     const cut = d.icut || /[^.!?。…"”'’)\]]$/.test(d.intro.trim());
     const more = d.y24 || (d.links || {}).yes24;
     h += `<div class="kv"><h4>책 소개${cut ? ` <span style="font-weight:500;color:var(--muted)">앞부분</span>` : ""}</h4><div class="txt">${esc(d.intro)}${cut ? "…" : ""}</div>

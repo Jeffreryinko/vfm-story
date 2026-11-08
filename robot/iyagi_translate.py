@@ -1,6 +1,7 @@
 """iyagi_translate.py — 원문 읽기(영어 공공 영역 책)를 한국어로 기계번역 (토큰 0).
 
-모델: facebook/nllb-200-distilled-600M (무료 공개) → CTranslate2 int8 로 변환해 CPU에서 돌림.
+모델: 구글 TranslateGemma 4B (robot/tgemma.py, 공개 모델 GGUF, 문단 단위·중간 저장해서 여러 실행에 걸쳐 이어 번역)
+      → 라이브러리가 없으면 예전 facebook/nllb-200-distilled-600M (CTranslate2 int8).
 GitHub Actions 무료 러너(2코어)에서 1초에 약 300~500자. 한 번 실행에 한 권(또는 시간 한도까지)만 번역하고,
 결과를 data/iyagi/orig/k<책id>-<부>.json 으로 저장합니다. 원문 문단(p 배열)과 1:1로 맞춥니다.
 
@@ -92,6 +93,43 @@ def translate_book(book_id: str, deadline: float):
     return True
 
 
+def translate_book_tg(tg, book_id: str, deadline: float):
+    """구글 TranslateGemma 로 한 권 — 문단(길면 문장 묶음) 단위, 중간 저장해서 다음 실행에 이어서."""
+    parts = sorted(ORIG.glob(f"{book_id}-*.json"), key=lambda p: int(p.stem.split("-")[1]))
+    for part in parts:
+        out = ORIG / f"k{part.name}"
+        if out.exists():
+            continue
+        paras = json.loads(part.read_text(encoding="utf-8"))["p"]
+        prog_p = ORIG / f"_tg_{part.stem}.json"                      # 중간 저장 (끝나면 지움)
+        prog = json.loads(prog_p.read_text(encoding="utf-8")) if prog_p.exists() else {}
+        t0 = time.time(); chars = 0; last_save = time.time()
+        for i, p in enumerate(paras):
+            k = str(i)
+            if k in prog:
+                continue
+            if p.strip().startswith("[Illustration"):
+                prog[k] = "[사진]"; continue
+            if time.time() > deadline or not tg.ok():
+                prog_p.write_text(json.dumps(prog, ensure_ascii=False), encoding="utf-8")
+                print(f"  시간 한도 — {part.name} {len(prog)}/{len(paras)} 문단에서 멈춤(다음 실행에 이어서)", flush=True)
+                return False
+            y = tg.tr(re.sub(r"\s+", " ", p).strip(), "en", "ko", deadline)
+            if y is None:
+                prog_p.write_text(json.dumps(prog, ensure_ascii=False), encoding="utf-8")
+                return False
+            prog[k] = y; chars += len(p)
+            if time.time() - last_save > 120:
+                prog_p.write_text(json.dumps(prog, ensure_ascii=False), encoding="utf-8"); last_save = time.time()
+                el = time.time() - t0
+                print(f"  {part.name} {len(prog)}/{len(paras)} 문단, {int(chars / max(el, 1))}자/초", flush=True)
+        done = [prog.get(str(i), "") for i in range(len(paras))]
+        out.write_text(json.dumps({"p": done, "eng": "translategemma-4b"}, ensure_ascii=False), encoding="utf-8")
+        prog_p.unlink(missing_ok=True)
+        print(f"  저장 {out.name} ({len(paras)} 문단, 구글 TranslateGemma)", flush=True)
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--book")
@@ -106,14 +144,23 @@ def main():
         todo = [o for o in index if o["id"] == a.book]
     if not todo:
         print("번역할 책이 없어요"); return
-    ensure_model()
+    try:
+        from tgemma import TG
+        tg = TG.get()
+    except Exception:
+        tg = None
+    if tg is None:
+        ensure_model()
+    # 구글 번역기로 하다 만 책을 먼저 (중간 저장이 있는 책)
+    todo.sort(key=lambda o: (0 if any(ORIG.glob(f"_tg_{o['id']}-*.json")) else 1, o.get("chars", 0)))
     for o in todo:
         if time.time() > deadline: break
         print(f"책: {o['ko']} ({o['id']}, {o.get('chars', 0):,}자)", flush=True)
-        ok = translate_book(o["id"], deadline)
+        ok = translate_book_tg(tg, o["id"], deadline) if tg is not None else translate_book(o["id"], deadline)
         parts_done = all((ORIG / f"k{o['id']}-{n}.json").exists() for n in range(1, o.get("parts", 1) + 1))
         if parts_done:
             o["tr"] = 1
+            if tg is not None: o["eng"] = "translategemma-4b"
             index_path.write_text(json.dumps(index, ensure_ascii=False), encoding="utf-8")
             print(f"완료: {o['ko']}", flush=True)
         if not ok:

@@ -43,6 +43,8 @@ jobs:
     if: needs.guard.outputs.skip != '1'
     runs-on: ubuntu-latest
     timeout-minutes: 345          # GitHub 무료 러너 최대 6시간
+    env:
+      TG_MINUTES: "330"           # 원문 번역은 전부 구글 TranslateGemma 로 (문단마다 중간 저장 → 다음 실행에 이어서)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -55,11 +57,20 @@ jobs:
             /tmp/nllb-600m-ct2
             ~/.cache/huggingface
           key: nllb-600m-ct2-v1
+      - name: 구글 번역 모델 캐시 (TranslateGemma 4B, 약 2.5GB)
+        uses: actions/cache@v4
+        with:
+          path: /tmp/tgemma
+          key: tgemma-4b-q4km-v1
       - name: 라이브러리 설치
-        run: pip install -q "ctranslate2>=4" "transformers>=4.40" sentencepiece "torch>=2.2" --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+        run: |
+          pip install -q requests
+          pip install -q llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu || echo "구글 번역기 설치 실패"
+          python -c "import llama_cpp" 2>/dev/null || pip install -q "ctranslate2>=4" "transformers>=4.40" sentencepiece "torch>=2.2" --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
       - name: 번역
         run: python robot/iyagi_translate.py --max-minutes 300 ${{ inputs.book && format('--book {0}', inputs.book) || '' }}
       - name: 저장소에 올리기
+        if: always()
         run: |
           git config user.name "iyagi-robot"
           git config user.email "robot@users.noreply.github.com"
