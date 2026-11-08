@@ -1,0 +1,64 @@
+{
+ "data": {
+  "currentPage": 1,
+  "items": [
+   {
+    "addOnLink": "",
+    "adultYn": "N",
+    "author": "토머스 S. 쿤 저/김명자,홍성욱 공역",
+    "backCover": "https://image.yes24.com/goods/11068788/BACK/L",
+    "contentDetail": {
+     "bookIntroduction": "출간 50주년 기념 개정 제4판\r\n세계적인 분석철학자 이언 해킹의 서론\r\n서울대학교 홍성욱 교수가 공역자로 참여한 새로운 번역판\r\n\r\n『과학혁명의 구조』의 출간 50주년을 기념하여 출간된 제4판 이다. 저명한 분석철학자이자 토머스 쿤의 패러다임 이론을 푸코의 사회과학 이론에 접목시켰다는 평가를 받는 과학철학자 이언 해킹이 쓴 서론이 이번 책에 새로 추가되었다. “이언 해킹의 서론”은 『과학혁명의 구조』가 서구 지식사회에 미친 방대한 영향들을 정리하고, “과학”의 진보가 이룩되는 과정을 체계적으로 요약한다. 또한 쿤에 의해서 제시된 패러다임과 공약불가능성 같은 개념들을 더 명확하게 정의하고 쿤의 아이디어들이 오늘날의 과학에 어떤 타당성을 가지는지를 검토한다.",
+     "bookSummary": null,
+     "tableOfContents": "이언 해킹의 서론\t\t      \t\r\n저자의 서문\t\t\t\t\t\r\n\r\n1  서론:역사의 역할\t\t\t\t\r\n2  정상과학에로의 길\t\t\t\t   \r\n3  정상과학의 성격\t\t\t\t  \r\n4  퍼즐 풀이로서의 정상과학\t\t\t    \r\n5  패러다임의 우선성\t\t\t\t  \r\n6  변칙현상 그리고 과학적 발견의 출현\t\t   \r\n7  위기 그리고 과학 이론의 출현\t\t  \r\n8  위기에 대한 반응\t\t\t\t \r\n9  과학혁명의 성격과 필연성\t\t\t\r\n10  세계관의 변화로서의 혁명\t\t\t   \r\n11  혁명의 비가시성\t\t\t\t   \r\n12  혁명의 완결\t\t\t\t\t \r\n13  혁명을 통한 진보\t\t\t\t   \r\n후기-1969\t\t\t\t\t   \r\n\r\n역자 해설 \t                                    \r\n역자 후기\t                                     \r\n찾아보기\t   "
+    },
+    "cover": "https://image.yes24.com/goods/11068788/L",
+    "eBookLink": "https://www.yes24.com/product/goods/19687187",
+    "ebookId": 19687187,
+    "fixedBookPriceYn": "Y",
+    "goodsSortNm": "국내도서-자연과학",
+    "goodsType": "도서",
+    "height": 30,
+    "isbn10": "8972915548",
+    "isbn13": "9788972915546",
+    "itemFormat": null,
+    "itemId": 11068788,
+    "itemStatus": "판매중",
+    "length": 225,
+    "link": "https://www.yes24.com/product/goods/11068788",
+    "mobileLink": "https://m.yes24.com/goods/detail/11068788",
+    "originalTitle": "The Structure of Scientific Revolutions",
+    "originalTranslation": "원서",
+    "pages": 360,
+    "publishDate": "20130910",
+    "publisher": "까치(까치글방)",
+    "salePoint": 9423,
+    "salePrice": 18000.0,
+    "series": [],
+    "shopPrice": 20000.0,
+    "sideCover": "https://image.yes24.com/goods/11068788/SIDE/L",
+    "sortOrder": 1,
+    "starScore": 9,
+    "subTitle": "",
+    "title": "과학혁명의 구조",
+    "upDown": null,
+    "weight": 625,
+    "width": 150,
+    "yesPoint": 1000
+   }
+  ],
+  "meta": {
+   "apiLink": "https://apis.yes24.com/v1/goods/itemDetail?searchType=ISBN13&query=9788972915546&detail=Y",
+   "apiTitle": "상품 상세 조회",
+   "logoUrl": "https://image.yes24.com/sysimage/apis/openapi/images/logoN4.svg",
+   "pubDate": "2026-11-09T00:02:45+09:00",
+   "query": "?searchType=ISBN13&query=9788972915546&detail=Y",
+   "version": "v1"
+  },
+  "pageSize": 1,
+  "totalCount": 1
+ },
+ "errorCode": null,
+ "message": "성공",
+ "success": true
+}
