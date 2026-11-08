@@ -579,11 +579,12 @@ def yes24_info(isbn, yc: Cache):
         out = {"cv": g.get("cover") or g.get("coverLarge") or g.get("image") or "", "url": g.get("link") or g.get("mobileLink") or "", "pg": g.get("pages") or g.get("page"),
                "ot": g.get("originalTitle") or "", "cat": g.get("categoryFullPath") or g.get("goodsSortNm") or g.get("categoryName") or "",
                "eb": g.get("eBookLink") or g.get("ebookLink") or "", "ebid": g.get("ebookId"),
-               "star": g.get("starScore"), "intro": clean(cd.get("introduce") or cd.get("intro") or cd.get("summary") or "")[:900],
-               "toc": (cd.get("toc") or cd.get("contents") or "")}
+               "star": g.get("starScore"),
+               "intro": clean(cd.get("bookIntroduction") or cd.get("bookSummary") or cd.get("introduce") or cd.get("intro") or "")[:900],
+               "toc": (cd.get("tableOfContents") or cd.get("toc") or cd.get("contents") or "")}
         if not out["toc"] and old_toc:
             out["toc"] = old_toc
-        if not out["toc"] and old_toc is None:
+        if not out["toc"] and old_toc is None and not cd:            # 상세에 목차 칸이 아예 없을 때만 따로
             c = y24("content", isbn)
             if c is None:
                 return None
