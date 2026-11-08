@@ -374,7 +374,12 @@ async function renderBook(id) {
   h += `<div class="box"><div class="stbtn">${Object.entries(STN).map(([k, v]) => `<button data-st="${k}" class="${my.st === k ? "on" : ""}">${v}</button>`).join("")}</div>
     ${my.st === "done" || my.r ? `<div class="stars" style="margin-top:8px">${[1, 2, 3, 4, 5].map(i => `<button data-rate="${i}" class="${(my.r || 0) >= i ? "on" : ""}">★</button>`).join("")}</div>` : ""}</div>`;
   // 소개 · 목차
-  if (d.intro) h += `<div class="kv"><h4>책 소개</h4><div class="txt">${esc(d.intro)}</div></div>`;
+  if (d.intro) {
+    const cut = d.icut || /[^.!?。…"”'’)\]]$/.test(d.intro.trim());
+    const more = d.y24 || (d.links || {}).yes24;
+    h += `<div class="kv"><h4>책 소개${cut ? ` <span style="font-weight:500;color:var(--muted)">앞부분</span>` : ""}</h4><div class="txt">${esc(d.intro)}${cut ? "…" : ""}</div>
+      ${cut ? `<p class="note" style="margin-top:6px">전체 소개는 로봇이 YES24에서 받아 오는 중이에요 · <a href="${esc(more)}" target="_blank" rel="noopener">지금 서점에서 전체 보기 ↗</a></p>` : ""}</div>`;
+  }
   if (d.toc) {
     const lines = d.toc.split("\n"), done = S.toc[id] || {}, n = Object.keys(done).length;
     h += `<div class="kv"><h4>목차 <span>${n ? `${n}/${lines.length} 읽음` : `${lines.length}칸 · 읽은 곳을 체크`}</span></h4>${n ? `<div class="prog"><i style="width:${Math.round(n / lines.length * 100)}%"></i></div>` : ""}<div class="toc">${lines.map((ln, i) => {

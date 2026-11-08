@@ -96,8 +96,13 @@ def get(url, *, params=None, headers=None, kind="src", tries=3, timeout=25, as_j
 
 
 # ───────────────────────── 글자 다듬기 ─────────────────────────
-def clean(s):
+def clean(s, keep_lines=False):
     s = H.unescape(str(s or ""))
+    if keep_lines:                                                    # 소개글: 문단 나눔은 살림
+        s = re.sub(r"<br\s*/?>|</p>", "\n", s, flags=re.I)
+        s = re.sub(r"<[^>]+>", " ", s).replace("\r", "")
+        s = "\n".join(re.sub(r"[ \t\u3000]+", " ", x).strip() for x in s.split("\n"))
+        return re.sub(r"\n{3,}", "\n\n", s).strip()
     s = re.sub(r"<[^>]+>", " ", s)
     return re.sub(r"\s+", " ", s).strip()
 
@@ -580,7 +585,7 @@ def yes24_info(isbn, yc: Cache):
                "ot": g.get("originalTitle") or "", "cat": g.get("categoryFullPath") or g.get("goodsSortNm") or g.get("categoryName") or "",
                "eb": g.get("eBookLink") or g.get("ebookLink") or "", "ebid": g.get("ebookId"),
                "star": g.get("starScore"),
-               "intro": clean(cd.get("bookIntroduction") or cd.get("bookSummary") or cd.get("introduce") or cd.get("intro") or "")[:900],
+               "intro": clean(cd.get("bookIntroduction") or cd.get("bookSummary") or cd.get("introduce") or cd.get("intro") or "", keep_lines=True)[:3000],
                "toc": (cd.get("tableOfContents") or cd.get("toc") or cd.get("contents") or "")}
         if not out["toc"] and old_toc:
             out["toc"] = old_toc
@@ -903,6 +908,16 @@ def main():
     log(f"묶은 책 {len(works)}권 (목록 줄 {sum(len(v) for v in raw.values())})")
 
     kc, yc, nc, wc, lc, sc = Cache("kakao"), Cache("yes24"), Cache("nlk"), Cache("wd_author"), Cache("wd_label"), Cache("fulltext")
+    # 한 번만: 예전 로봇이 소개를 못 읽었거나 900자에서 자른 책 → YES24 상세만 다시 (목차는 그대로)
+    mk = ST / "migr_intro1"
+    if not mk.exists():
+        n = 0
+        for v in yc.d.values():
+            if v and (not v.get("intro") or len(v.get("intro", "")) >= 880) and not v.get("_redo"):
+                v["_redo"] = 1; n += 1
+        yc.dirty = True
+        mk.write_text(str(n))
+        log(f"소개 다시 받기 표시: {n}권")
     alias = jload(ST / "isbn_of.json", {}) or {}
 
     # 여러 곳이 추천한 책부터 정보 채우기
@@ -992,6 +1007,7 @@ def main():
             cover, cover2 = cover2, (k.get("img") or next((e["cv"] for e in w["ent"] if e.get("cv")), "") or nl.get("img", ""))
         toc = y.get("toc") or nl.get("toc") or ""
         intro = y.get("intro") or k.get("c") or ""
+        intro_cut = bool(not y.get("intro") and k.get("c"))              # 카카오 소개는 앞부분만 옴
         pd = bool(au and au.get("d") is not None and au["d"] <= SRC.PD_DEATH_MAX) or (era in ("고대", "중세"))
         full = {}
         if pd:
@@ -1041,7 +1057,7 @@ def main():
         details[w["id"]] = {
             "id": w["id"], "t": title, "a": w["a"], "tr": k.get("tr") or [], "pub": k.get("pub") or next((e["pub"] for e in w["ent"] if e.get("pub")), ""),
             "y": pub_year, "isbn": isbn, "isbns": isbns[:8], "cv": cover, "cv2": cover2, "f": fld, "n": nat, "e": era, "l": lvl, "pg": str(pages or ""),
-            "ot": y.get("ot", ""), "intro": intro, "toc": toc, "recs": recs, "shorts": shorts, "univ": univ,
+            "ot": y.get("ot", ""), "intro": intro, "icut": intro_cut, "toc": toc, "recs": recs, "shorts": shorts, "univ": univ,
             "au": {k2: au.get(k2) for k2 in ("b", "d", "kw", "en") if au.get(k2)} if au else {},
             "eb": eb, "full": full, "rel": rel[:6], "star": y.get("star"), "y24": y.get("url", ""), "daum": k.get("url", ""),
             "links": links_for(w, isbn, re.split(r"\s*[:(]", title)[0], w["a"]),
