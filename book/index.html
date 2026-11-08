@@ -58,6 +58,10 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
 .help{background:var(--surface);border-radius:var(--r);padding:12px 14px;margin:8px 0;font-size:13.5px;color:var(--muted)}.help b{color:var(--ink)}
 .seg{display:flex;background:var(--ap-fill);border-radius:10px;padding:2px;margin:8px 0}.seg button{flex:1;border:0;background:none;padding:7px 0;border-radius:8px;font-size:14px;font-weight:500}
 .seg button.on{background:var(--surface);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+/* 카드: 목차 바로 보기 · 카드 고르기 */
+.ctoc{margin:0 0 6px;padding:0 0 0 10px;list-style:none;border-left:2px solid var(--accent-soft);font-size:calc(14px*var(--fs));line-height:1.6}.ctoc li{margin:1px 0}
+.ctocm summary{font-size:13.5px;font-weight:600;color:var(--accent);padding:4px 0;cursor:pointer}
+.dkmore{margin:2px 0 6px}.dkmore summary{font-size:13.5px;font-weight:600;color:var(--accent);padding:4px 2px;cursor:pointer}.dkmore summary b{color:var(--ink)}
 /* 표지 */
 .cv{position:relative;aspect-ratio:2/3;border-radius:6px;overflow:hidden;background:linear-gradient(160deg,var(--accent-soft),var(--sunk));box-shadow:0 1px 2px rgba(0,0,0,.12),0 4px 12px rgba(0,0,0,.08)}
 .cv img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -113,7 +117,7 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
 const LS = { g(k, d) { try { const v = localStorage.getItem("vfm:book:" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
              s(k, v) { try { localStorage.setItem("vfm:book:" + k, JSON.stringify(v)); } catch (e) { toast("저장 공간이 꽉 찼어요"); } } };
 const S = { star: LS.g("star", {}), memo: LS.g("memo", {}), toc: LS.g("toc", {}), seen: LS.g("seen", {}), view: LS.g("view", "grid"),
-            f: LS.g("filter", {}), sort: LS.g("sort", "rec"), q: "", lim: 60, shelfTab: "reading" };
+            f: LS.g("filter", {}), sort: LS.g("sort", "rec"), q: "", lim: 60, shelfTab: "reading", dk: LS.g("dk", "today") };
 function save(k) { LS.s(k, S[k]); }
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 function toast(m) { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
@@ -163,7 +167,26 @@ function deckCard(b) {
     <div style="display:flex;gap:14px;align-items:flex-start;margin:8px 0 10px"><div style="width:104px;flex:none">${cover(b)}</div><div><h2 class="vdk-t" style="margin:0 0 6px">${esc(b.t)}</h2><p class="vdk-note" style="margin:0">${esc(b.a || "")}${b.y ? " · " + esc(b.y) : ""}</p>
     <p class="vdk-note">${esc(srcNames(b.s).slice(0, 4).join(" · "))}${b.s.length > 4 ? " 외" : ""}</p></div></div>
     <div class="vdk-p" data-intro="${b.id}">소개 불러오는 중…</div>
-    <button type="button" class="vdk-more" data-b="${b.id}">목차 · 자세히 ›</button></div>`;
+    <div data-ctoc="${b.id}"></div>
+    <button type="button" class="vdk-more" data-b="${b.id}">책 화면에서 자세히 ›</button></div>`;
+}
+const DK1 = [["today", "오늘의 8권"], ["top", "많이 추천된 책"], ["toc", "목차 있는 책"], ["univ", "대학 추천"], ["full", "원문 읽는 고전"], ["new", "새로 들어온 책"], ["want", "읽고 싶음"]];
+function dkLabel(dk) { const f = DK1.find(x => x[0] === dk); return f ? f[1] : dk.startsWith("f:") ? "분야: " + dk.slice(2) : dk.startsWith("u:") ? dk.slice(2) + " 추천" : dk; }
+function dkPool(dk) {
+  const L = ALL || TOP, m = SRCMAP();
+  if (!ALL && !["today", "top"].includes(dk)) loadAll().then(() => { if (S.dk === dk && (location.hash || "#today") === "#today") paint(); });
+  let l;
+  if (dk === "today") { const pool = TOP.filter(b => b.r >= 2); return dayPick(pool.length ? pool : TOP, 8); }
+  if (dk === "top") l = L;
+  else if (dk === "toc") l = L.filter(b => (b.x || "").includes("t"));
+  else if (dk === "univ") l = L.filter(b => b.u > 0).sort((a, b) => b.u - a.u || b.r - a.r);
+  else if (dk === "full") l = L.filter(b => (b.x || "").includes("o"));
+  else if (dk === "new") { const c = new Date(Date.now() - 7 * 864e5 + 9 * 3600e3).toISOString().slice(0, 10); l = L.filter(b => b.new && b.new >= c); }
+  else if (dk === "want") l = Object.entries(S.star).filter(([, v]) => v.st === "want").sort((a, b) => (b[1].at || 0) - (a[1].at || 0)).map(([id, v]) => byId(id) || { id, ...(v.item || {}), r: 0, s: [], f: "" });
+  else if (dk.startsWith("f:")) l = L.filter(b => b.f === dk.slice(2));
+  else if (dk.startsWith("u:")) l = L.filter(b => b.s.some(x => (m[x] || {}).short === dk.slice(2)));
+  else l = L;
+  return l.slice(0, 400);
 }
 function srcNames(ids) { const m = SRCMAP(); return [...new Set((ids || []).map(s => (m[s] || {}).short || s))]; }
 function makeDeck(id, list, empty) {
@@ -171,7 +194,19 @@ function makeDeck(id, list, empty) {
     items: () => list().map(b => ({ key: b.id, sa: "book", title: b.t, url: location.origin + location.pathname + "#b=" + b.id, shareText: `${b.t} — ${b.a}\n${location.origin + location.pathname}#b=${b.id}`, html: () => deckCard(b), b })),
     onShow(x) { if (x.b) { S.seen[x.b.id] = 1; save("seen"); fillIntro(x.b.id); } }, onList: () => { try { localStorage.setItem("vfm:mode:" + MODE, '"list"'); } catch (e) { } paint(); } });
 }
-async function fillIntro(id) { try { const d = await detail(id); document.querySelectorAll(`[data-intro="${id}"]`).forEach(el => el.textContent = (d.intro || "소개가 아직 없어요. 로봇이 찾는 중이에요.").slice(0, 320) + ((d.intro || "").length > 320 ? "…" : "")); } catch (e) { } }
+async function fillIntro(id) {
+  try {
+    const d = await detail(id);
+    document.querySelectorAll(`[data-intro="${id}"]`).forEach(el => { if (d.intro) el.textContent = d.intro.slice(0, 200) + (d.intro.length > 200 ? "…" : ""); else el.remove(); });
+    // 카드에서 목차 바로 보기: 앞 8줄은 보이고, 나머지는 펼치기
+    const ls = String(d.toc || "").split("\n").filter(Boolean);
+    document.querySelectorAll(`[data-ctoc="${id}"]`).forEach(el => {
+      el.innerHTML = ls.length ? `<p class="vdk-h" style="margin:6px 0 4px;font-weight:700">목차 <small style="color:var(--muted);font-weight:400">${ls.length}칸</small></p><ul class="ctoc">${ls.slice(0, 8).map(x => `<li>${esc(x)}</li>`).join("")}</ul>` +
+        (ls.length > 8 ? `<details class="ctocm"><summary>목차 ${ls.length - 8}줄 더 보기</summary><ul class="ctoc">${ls.slice(8, 120).map(x => `<li>${esc(x)}</li>`).join("")}</ul></details>` : "")
+        : `<p class="vdk-note">목차는 로봇이 찾는 중이에요</p>`;
+    });
+  } catch (e) { }
+}
 
 function renderToday() {
   const n = IDX.total || 0;
@@ -180,10 +215,16 @@ function renderToday() {
   h += broken();
   const reading = Object.entries(S.star).filter(([, v]) => v.st === "reading").map(([id, v]) => ({ id, ...(v.item || {}), cv: (v.item || {}).cv })).slice(0, 12);
   if (reading.length) h += `<h2 class="sec">읽는 중<button data-go="#shelf">보관함 ›</button></h2><div class="hrow">${reading.map(b => bk({ ...b, t: b.t || "", a: b.a || "" }, { sub: tocPct(b.id) })).join("")}</div>`;
-  const pool = TOP.filter(b => b.r >= 2), pick = dayPick(pool.length ? pool : TOP, 8);
-  h += `<h2 class="sec">오늘의 책<small>여러 곳이 함께 권한 책 중 날마다 8권</small></h2>`;
+  const dk = S.dk, pick = dkPool(dk), lab = dkLabel(dk);
+  h += `<h2 class="sec">카드로 넘겨보기<small>${esc(lab)}${dk === "today" ? "" : ` · ${pick.length.toLocaleString()}장`}</small></h2>`;
+  h += `<div class="chips">${DK1.map(([k, v]) => `<button data-dk="${k}" class="${dk === k ? "on" : ""}">${v}</button>`).join("")}</div>`;
+  h += `<details class="dkmore"${/^[fu]:/.test(dk) ? " open" : ""}><summary>분야·학교로 고르기${/^[fu]:/.test(dk) ? ` <b>· ${esc(dk.slice(2))}</b>` : ""}</summary>
+    <p class="flab">분야</p><div class="chips">${(IDX.fieldOrder || []).filter(f => IDX.fields[f]).map(f => `<button data-dk="f:${esc(f)}" class="${dk === "f:" + f ? "on" : ""}">${esc(f)}</button>`).join("")}</div>
+    <p class="flab">학교·기관</p><div class="chips">${allShorts().map(u => `<button data-dk="u:${esc(u)}" class="${dk === "u:" + u ? "on" : ""}">${esc(u)}</button>`).join("")}</div></details>`;
   if (D) h += D.modeSwitch(MODE, () => paint());
-  h += isDeck() ? makeDeck("book-today-" + DAY(), () => pick, "오늘 몫을 다 봤어요").html() : `<div class="hrow">${pick.map(b => bk(b)).join("")}</div>`;
+  h += !pick.length ? `<p class="empty">${dk === "want" ? "책 화면에서 '읽고 싶음'을 누르면 여기 카드로 모여요" : "맞는 책이 없어요"}</p>`
+    : isDeck() ? makeDeck("book-" + dk + (dk === "today" ? "-" + DAY() : ""), () => pick, "이 카드를 다 봤어요 — 위에서 다른 카드를 골라 보세요").html()
+    : `<div class="hrow">${pick.slice(0, 30).map(b => bk(b)).join("")}</div>`;
   h += `<h2 class="sec">가장 많이 추천된 책<button data-go="#find">전부 ›</button></h2>${viewSwitch()}${books(TOP.slice(0, 30), { num: 1 })}`;
   const fresh = TOP.filter(b => b.new && b.new >= new Date(Date.now() - 7 * 864e5 + 9 * 3600e3).toISOString().slice(0, 10)).slice(0, 12);
   if (fresh.length) h += `<h2 class="sec">새로 들어온 책</h2><div class="hrow">${fresh.map(b => bk(b)).join("")}</div>`;
@@ -342,7 +383,9 @@ async function renderBook(id) {
     }).join("")}</div></div>`;
   } else h += `<div class="kv"><h4>목차</h4><p class="note">${IDX.keys && IDX.keys.yes24 ? "아직 못 찾았어요. 로봇이 매일 다른 판·다른 곳에서 다시 찾아요." : "목차는 YES24 열쇠가 들어오면 로봇이 채워요."} <a target="_blank" rel="noopener" href="${esc(d.y24 || L.yes24)}">서점에서 목차 보기 ↗</a></p></div>`;
   // 바로가기
-  const L = d.links || {};
+  const L = Object.assign({}, d.links || {});
+  const qt = String(d.t || "").split(/\s*[:(]/)[0].trim();
+  L.millie = "https://www.millie.co.kr/v3/search/result/" + encodeURIComponent(qt);     // 밀리: 제목이 들어간 검색 결과로 바로
   const lk = (u, i, t, s) => `<a href="${esc(u)}" target="_blank" rel="noopener"><i>${i}</i><span>${t}${s ? `<small>${s}</small>` : ""}</span></a>`;
   let full = "";
   if (d.full && (d.full.iy || d.full.ws || d.full.gb)) {
@@ -441,7 +484,7 @@ async function paint() {
 function itemOf(id, d) { const b = byId(id) || {}; return { t: (d && d.t) || b.t || "", a: (d && d.a) || b.a || "", cv: (d && d.cv) || b.cv || "", cv2: (d && d.cv2) || b.cv2 || "" }; }
 
 document.addEventListener("click", async e => {
-  const t = e.target.closest("[data-v],[data-go],[data-b],[data-act],[data-fk],[data-ff],[data-sort],[data-vw],[data-st],[data-rate],[data-sh],[data-tc],a[data-ws]"); if (!t) return;
+  const t = e.target.closest("[data-v],[data-go],[data-b],[data-act],[data-fk],[data-ff],[data-sort],[data-vw],[data-st],[data-rate],[data-sh],[data-tc],[data-dk],a[data-ws]"); if (!t) return;
   const d = t.dataset;
   if (t.matches("a[data-ws]")) { e.preventDefault(); return nav(t.getAttribute("href")); }
   if (d.tc != null) { const id = location.hash.slice(3); const m = S.toc[id] || (S.toc[id] = {}); if (t.checked) m[d.tc] = 1; else delete m[d.tc]; if (!Object.keys(m).length) delete S.toc[id]; save("toc");
@@ -455,6 +498,7 @@ document.addEventListener("click", async e => {
   if (d.sort) { S.sort = d.sort; LS.s("sort", S.sort); return paint(); }
   if (d.vw) { S.view = d.vw; save("view"); return paint(); }
   if (d.sh) { S.shelfTab = d.sh; return paint(); }
+  if (d.dk) { S.dk = d.dk; LS.s("dk", S.dk); return paint(); }
   if (d.st) { const id = location.hash.slice(3); const dd = await detail(id); const cur = S.star[id] || {};
     if (cur.st === d.st) { delete S.star[id]; toast("내 책에서 뺐어요"); } else { S.star[id] = { ...cur, at: Date.now(), st: d.st, item: itemOf(id, dd) }; toast(STN[d.st] + "에 넣었어요"); }
     save("star"); return paint(); }

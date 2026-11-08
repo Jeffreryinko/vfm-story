@@ -8,14 +8,14 @@
   "use strict";
   var D = window.VfmDeck, T = window.VfmTrend, esc = D.esc, flag = T.flag;
   var KINDS = [["sisa", "시사 이야기·단신"], ["trend", "트렌드 (검색어·영상)"], ["meme", "레딧·밈"], ["ai", "AI 새 기능"], ["tool", "도구·오픈소스"], ["nation", "나라별 오늘"],
-    ["story", "이야기·역사"], ["wiki", "이야기 원문 (위키백과)"], ["brain", "뇌 부위·뇌과학 소식"], ["baedat", "배댓 (베스트 댓글)"], ["mental", "멘탈리스트 기술"]];
+    ["story", "이야기·역사"], ["wiki", "이야기 원문 (위키백과)"], ["brain", "뇌 부위·뇌과학 소식"], ["baedat", "배댓 (베스트 댓글)"], ["mental", "멘탈리스트 기술"], ["book", "책 (권장도서·목차)"]];
   if (window.VFM_KINDS) KINDS = KINDS.filter(function (k) { return window.VFM_KINDS.indexOf(k[0]) >= 0; });
   var HAS = {}; KINDS.forEach(function (k) { HAS[k[0]] = 1; });
   var ONLY_STORY = HAS.story && !HAS.sisa;                              // 이야기 자판기: 이야기·역사가 주인공
-  var DEF = { sisa: 3, trend: 3, meme: 2, ai: 2, tool: 2, nation: 2, story: ONLY_STORY ? 3 : 1, wiki: 2, brain: 2, baedat: 3, mental: 3 };
+  var DEF = { sisa: 3, trend: 3, meme: 2, ai: 2, tool: 2, nation: 2, story: ONLY_STORY ? 3 : 1, wiki: 2, brain: 2, baedat: 3, mental: 3, book: 2 };
   var WNAME = ["끄기", "적게", "보통", "많이"];
   var W = Object.assign({}, DEF, (function () { try { return JSON.parse(localStorage.getItem("vfm:mix:w") || "{}"); } catch (e) { return {}; } })());
-  var POOL = { sisa: [], trend: [], meme: [], ai: [], tool: [], nation: [], story: [], wiki: [], brain: [], baedat: [], mental: [] };
+  var POOL = { sisa: [], trend: [], meme: [], ai: [], tool: [], nation: [], story: [], wiki: [], brain: [], baedat: [], mental: [], book: [] };
   var CAT = { war: "전쟁·안보", pol: "정치·외교", eco: "경제·시장", tech: "기술·과학", dis: "재난·사고", soc: "사회", spo: "스포츠", cul: "문화" };
   var RK = null; try { RK = new Intl.DisplayNames(["ko"], { type: "region" }); } catch (e) { }
   var cname = function (c) { if (c === "WW") return "세계"; try { return RK ? RK.of(c) : c; } catch (e) { return c; } };
@@ -311,24 +311,45 @@
   });
 
   // 책 (오늘의 책): 여러 곳이 함께 권한 권장도서 — 표지는 주소만 (저장 안 함)
-  if (HAS.story) j("data/book/top.json").then(function (b) {
+  // 책 (오늘의 책): 여러 곳이 함께 권한 권장도서 — 표지는 주소만, 목차는 카드에서 바로 펼침
+  if (HAS.book) j("data/book/top.json").then(function (b) {
     if (!b || !b.rows || !b.cols) return;
     var C = {}; b.cols.forEach(function (c, i) { C[c] = i; });
     var d0 = Math.floor((Date.now() + 9 * 3600e3) / 864e5), rows = b.rows.filter(function (r) { return r[C.r] >= 2; });
-    rows = rows.slice(d0 * 13 % Math.max(rows.length, 1)).concat(rows.slice(0, d0 * 13 % Math.max(rows.length, 1))).slice(0, 60);
-    add("story", rows.map(function (r) {
-      var id = r[C.id], t = r[C.t], a = r[C.a] || "", cv = r[C.cv] || "", cv2 = r[C.cv2] || "";
-      return { key: "b:" + id, kw: [t], sa: "book", kind: "story", title: t, url: location.origin + location.pathname + "book/#b=" + id, shareText: t + " — " + a, q: t + " " + a,
+    rows = rows.slice(d0 * 13 % Math.max(rows.length, 1)).concat(rows.slice(0, d0 * 13 % Math.max(rows.length, 1))).slice(0, 80);
+    add("book", rows.map(function (r) {
+      var id = r[C.id], t = r[C.t], a = r[C.a] || "", cv = r[C.cv] || "", cv2 = r[C.cv2] || "", hasToc = String(r[C.x] || "").indexOf("t") >= 0;
+      return { key: "b:" + id, kw: [t], sa: "book", kind: "book", title: t, url: location.origin + location.pathname + "book/#b=" + id, shareText: t + " — " + a, q: t + " " + a,
         html: function () {
-          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag story">책</span><span>' + r[C.r] + "곳이 함께 추천</span><span>" + esc(r[C.f] || "") + "</span></div>" +
+          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag book">책</span><span>' + r[C.r] + "곳이 함께 추천</span><span>" + esc(r[C.f] || "") + "</span></div>" +
             '<div style="display:flex;gap:14px;align-items:flex-start;margin:6px 0 10px"><span style="width:96px;flex:none;aspect-ratio:2/3;border-radius:6px;overflow:hidden;background:rgba(127,127,127,.15);display:block">' +
             (cv ? '<img src="' + esc(cv) + '" data-alt="' + esc(cv2) + '" referrerpolicy="no-referrer" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover" onerror="if(this.dataset.alt){this.src=this.dataset.alt;this.dataset.alt=\'\'}else{this.remove()}">' : "") +
             '</span><span><h2 class="vdk-t" style="margin:0 0 6px">' + esc(t) + '</h2><p class="vdk-note" style="margin:0">' + esc(a) + (r[C.y] ? " · " + esc(r[C.y]) : "") + "</p></span></div>" +
-            '<p class="vdk-note">대학·기관 권장도서 · 목차와 소개는 책 탭에서</p>' +
-            '<button type="button" class="vdk-more"' + go("book/#b=" + id) + ">책 탭에서 목차 보기 ›</button></div>";
+            '<div class="vdk-p" data-bintro="' + esc(id) + '"></div>' +
+            (hasToc ? '<details class="mx-sec" data-btoc="' + esc(id) + '"><summary>목차 펼치기</summary><div class="mx-toc">불러오는 중…</div></details>' : '<p class="vdk-note">목차는 로봇이 찾는 중이에요</p>') +
+            '<button type="button" class="vdk-more"' + go("book/#b=" + id) + ">책 탭에서 자세히 ›</button></div>";
         } };
     }));
   });
+  // 책 카드: 소개 첫머리 채우기 · 목차 펼치면 그때 받아 오기 (data/book/w/조각.json)
+  var BW = {};
+  function bookDetail(id) { var sh = id.slice(1, 3); if (!BW[sh]) BW[sh] = j("data/book/w/" + sh + ".json"); return BW[sh].then(function (x) { return (x || {})[id]; }); }
+  function fillBook(root) {
+    (root.querySelectorAll ? root.querySelectorAll("[data-bintro]:not([data-done])") : []).forEach(function (el) {
+      el.setAttribute("data-done", "1");
+      bookDetail(el.getAttribute("data-bintro")).then(function (d) { if (d && d.intro) el.textContent = d.intro.slice(0, 220) + (d.intro.length > 220 ? "…" : ""); else el.remove(); });
+    });
+  }
+  new MutationObserver(function (ms) { ms.forEach(function (m) { m.addedNodes.forEach(function (n) { if (n.nodeType === 1) fillBook(n.parentNode || n); }); }); }).observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener("toggle", function (e) {
+    var el = e.target; if (!el.matches || !el.matches("details[data-btoc]") || !el.open || el.getAttribute("data-done")) return;
+    el.setAttribute("data-done", "1");
+    bookDetail(el.getAttribute("data-btoc")).then(function (d) {
+      var box = el.querySelector(".mx-toc"); if (!box) return;
+      var ls = String((d && d.toc) || "").split("\n").filter(Boolean);
+      box.innerHTML = ls.length ? '<ul style="margin:0 0 8px;padding:0 0 0 10px;list-style:none;border-left:2px solid rgba(52,168,83,.3);font-size:14px;line-height:1.6">' + ls.slice(0, 60).map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" + (ls.length > 60 ? '<p class="vdk-note">… 나머지 ' + (ls.length - 60) + "줄은 책 탭에서</p>" : "") : '<p class="vdk-note">목차가 아직 없어요</p>';
+    });
+  }, true);
 
   /* ── 카드가 보일 때만 더 받아 오기: 시사 기사 목록(그 판), 역사 글 전체 ── */
   var FEEDBY = null, feedP = null, HD = {}, CM = {};
@@ -465,6 +486,6 @@
     ".mx-tag.nation{background:color-mix(in srgb,var(--ap-teal) 18%,transparent);color:var(--ap-teal)}.mx-tag.ai{background:color-mix(in srgb,var(--ap-purple) 15%,transparent);color:var(--ap-purple-t)}" +
     ".mx-tag.story{background:color-mix(in srgb,var(--ap-orange) 16%,transparent);color:var(--ap-orange-t)}.mx-tag.tool{background:color-mix(in srgb,#30B0C7 18%,transparent);color:#0A7A8C}" +
     ".mx-tag.brain{background:color-mix(in srgb,#E0457B 15%,transparent);color:#C2185B}.mx-tag.baedat{background:color-mix(in srgb,var(--ap-red,#FF3B30) 14%,transparent);color:#D70015}" +
-    ".mx-tag.mental{background:color-mix(in srgb,#5856D6 15%,transparent);color:#4B49C8}.mx-cm{font-size:19px;line-height:1.55;font-weight:600;margin:6px 0 4px;white-space:pre-line;letter-spacing:-.01em}.vdk .new{color:var(--ap-blue-t)}";
+    ".mx-tag.book{background:color-mix(in srgb,#34A853 16%,transparent);color:#1E7E34}.mx-tag.mental{background:color-mix(in srgb,#5856D6 15%,transparent);color:#4B49C8}.mx-cm{font-size:19px;line-height:1.55;font-weight:600;margin:6px 0 4px;white-space:pre-line;letter-spacing:-.01em}.vdk .new{color:var(--ap-blue-t)}";
   document.head.appendChild(css);
 })();

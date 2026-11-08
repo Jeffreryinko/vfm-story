@@ -874,7 +874,7 @@ def links_for(w, isbn, title, author):
     return {
         "google": f"https://www.google.com/search?q={quote(chr(34) + title + chr(34) + ' ' + first_author(author))}",
         "lib": f"https://www.data4library.kr/srch?srchText={quote(isbn) if isbn else qt}",
-        "millie": f"https://www.millie.co.kr/v3/search/result?keyword={qt}",
+        "millie": f"https://www.millie.co.kr/v3/search/result/{quote(title, safe='')}",
         "ridi": f"https://ridibooks.com/search?q={qt}",
         "welaaa": f"https://www.welaaa.com/search?keyword={qt}",
         "kyobo": f"https://search.kyobobook.co.kr/search?keyword={quote(isbn) if isbn else q}",
