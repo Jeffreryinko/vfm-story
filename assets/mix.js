@@ -270,19 +270,21 @@
       j(BD + m + ".json").then(function (d) {
         if (!d || !d.videos) return;
         var out = [];
-        d.videos.forEach(function (v) {
-          (v.best || []).slice(0, 3).forEach(function (c) {
-            if (c.masked || !c.text) return;
-            var tg = c.tags || {};
-            out.push({ key: "bd:" + c.id, kw: [v.channel], sa: "baedat", kind: "baedat", title: c.text.slice(0, 60), url: "https://www.youtube.com/watch?v=" + v.id + "&lc=" + c.id, shareText: "“" + c.text + "”\n— " + v.title, q: c.text + " " + v.title + " " + v.channel,
-              _p: c.power || 0,
-              html: function () {
-                return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag baedat">배댓</span><span>' + Number(m.slice(5)) + "월판 " + v.rank + "위</span>" + (tg.type ? "<span>" + esc(tg.type) + (tg.device ? " · " + esc(tg.device) : "") + "</span>" : "") + (tg.emotion ? "<span>" + esc(tg.emotion) + "</span>" : "") + "</div>" +
-                  '<p class="mx-cm">“' + esc(c.text) + "”</p><p class=\"vdk-note\">♥ " + (c.likes || 0).toLocaleString() + " · 답글 " + (c.replies || 0).toLocaleString() + "</p>" +
-                  media({ vid: v.id, short: v.short, title: v.title }) + '<p class="vdk-h">' + esc(v.title) + '</p><p class="vdk-note">' + esc(v.channel) + " · 조회 " + (v.views || 0).toLocaleString() + "</p>" +
-                  '<button type="button" class="vdk-more"' + go("baedat/") + ">배댓에서 이 달 전부 보기 ›</button></div>";
-              } });
-          });
+        d.videos.forEach(function (v) {                                 // 영상 하나 = 카드 한 장, 배댓 5개
+          var cs = (v.best || []).filter(function (c) { return c.text && !c.masked; }).slice(0, 5);
+          if (!cs.length) return;
+          var c0 = cs[0], tg = c0.tags || {};
+          out.push({ key: "bd:" + v.id, kw: [v.channel], sa: "baedat", kind: "baedat", title: c0.text.slice(0, 60), url: "https://www.youtube.com/watch?v=" + v.id, shareText: "“" + c0.text + "”\n— " + v.title, q: cs.map(function (c) { return c.text; }).join(" ") + " " + v.title + " " + v.channel,
+            _p: Math.max.apply(null, cs.map(function (c) { return c.power || 0; })),
+            html: function () {
+              return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag baedat">배댓</span><span>' + Number(m.slice(5)) + "월판 " + v.rank + "위</span>" + (tg.type ? "<span>" + esc(tg.type) + (tg.device ? " · " + esc(tg.device) : "") + "</span>" : "") + (tg.emotion ? "<span>" + esc(tg.emotion) + "</span>" : "") + "</div>" +
+                '<p class="mx-cm">“' + esc(c0.text) + "”</p><p class=\"vdk-note\">♥ " + (c0.likes || 0).toLocaleString() + " · 답글 " + (c0.replies || 0).toLocaleString() + "</p>" +
+                media({ vid: v.id, short: v.short, title: v.title }) + '<p class="vdk-h">' + esc(v.title) + '</p><p class="vdk-note">' + esc(v.channel) + " · 조회 " + (v.views || 0).toLocaleString() + "</p>" +
+                (cs.length > 1 ? '<p class="vdk-h">💬 베스트 댓글</p><ol class="vfm-cm">' + cs.slice(1).map(function (c) {
+                  var t = c.tags || {};
+                  return "<li><p>" + esc(c.text) + "</p><small>👍 " + (c.likes || 0).toLocaleString() + (t.type ? " · " + esc(t.type) : "") + (t.emotion ? " · " + esc(t.emotion) : "") + "</small></li>"; }).join("") + "</ol>" : "") +
+                '<button type="button" class="vdk-more"' + go("baedat/") + ">배댓에서 이 달 전부 보기 ›</button></div>";
+            } });
         });
         out.sort(function (a, b) { return b._p - a._p; });   // 배댓 파워(좋아요 ÷ 조회수) 높은 것부터
         add("baedat", out);
