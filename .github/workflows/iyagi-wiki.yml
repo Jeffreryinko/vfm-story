@@ -1,9 +1,11 @@
-name: 이야기 위키백과 한꺼번에 모으기 (손으로 한 번 실행, 토큰 0)
+name: 이야기 위키백과 모으기 (매일 새벽 3시 40분 · 클로드 작가 대신, 토큰 0)
 
 # Actions 탭 → 이 작업 → "Run workflow" 를 누르면 돌아요. 자동으로는 돌지 않아요.
 # 목록(카탈로그) 약 1,500개를 위키백과에서 모아 data/iyagi/wiki/ 에 정리합니다.
 # 시간 안에 다 못 하면 다음에 다시 누르면 이어서 합니다.
 on:
+  schedule:
+    - cron: "40 18 * * *"       # 한국시간 03:40 — 아직 안 모은 이야기를 이어서, 요청 들어온 것 먼저
   workflow_dispatch:
     inputs:
       translate:
@@ -32,7 +34,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: 번역 모델 캐시 (원문 번역 로봇과 공유)
-        if: inputs.translate == 'yes'
+        if: (github.event_name == 'schedule' || inputs.translate == 'yes')
         uses: actions/cache@v4
         with:
           path: |
@@ -42,16 +44,16 @@ jobs:
       - name: 라이브러리 설치
         run: |
           pip install -q requests
-          if [ "${{ inputs.translate }}" = "yes" ]; then
+          if [ "${{ github.event_name == 'schedule' || inputs.translate == 'yes' }}" = "true" ]; then
             pip install -q "ctranslate2>=4" "transformers>=4.40" sentencepiece "torch>=2.2" --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
           fi
       - name: 위키백과에서 모으기
-        run: python robot/iyagi_wiki.py --max-minutes ${{ inputs.minutes || '300' }} ${{ inputs.translate == 'yes' && '--translate' || '' }}
+        run: python robot/iyagi_wiki.py --max-minutes ${{ inputs.minutes || '150' }} ${{ (github.event_name == 'schedule' || inputs.translate == 'yes') && '--translate' || '' }}
       - name: 저장소에 올리기
         run: |
           git config user.name "iyagi-robot"
           git config user.email "robot@users.noreply.github.com"
-          git add data/iyagi/wiki
+          git add data/iyagi/wiki data/requests.json
           git diff --cached --quiet && echo "변경 없음" && exit 0
           git commit -m "이야기: 위키백과 원문 정리 $(TZ=Asia/Seoul date '+%m/%d')"
           for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 10; done

@@ -15,7 +15,7 @@
   var APP = (window.vfm && window.vfm.app) || window.VFM_APP || "sisa";
   var HOME = APP === "home";
   var ROOT = HOME ? "./" : "../";
-  var APPS = [["sisa", "시사"], ["iyagi", "이야기"], ["ai", "AI"], ["history", "역사"], ["tools", "도구"], ["brain", "뇌"], ["baedat", "배댓"], ["mental", "맨탈"]];
+  var APPS = [["iyagi","이야기"],["history","역사"],["brain","뇌"]];
   var NAME = { home: "홈", sisa: "시사", iyagi: "이야기", ai: "AI", history: "역사", tools: "도구", brain: "뇌", baedat: "배댓", mental: "맨탈", box: "보관함" };
   try { if (!HOME) localStorage.setItem("vfm:tab", APP); } catch (e) { }
 
@@ -280,6 +280,7 @@
       '<div class="cap">유튜브 내 계정으로 보기</div><div class="grp">' +
       '<button type="button" data-act="ytlogin"><span class="tint">크롬에서 유튜브 로그인</span><span class="v">한 번만 ↗</span></button></div>' +
       '<p class="foot">크롬에서 유튜브에 로그인해 두면, 카드 안에서 영상을 틀 때도 내 계정으로 재생돼요(프리미엄이면 광고 없음 · 시청 기록 남음). 아이폰 사파리는 안 돼요.</p>' +
+      '<div class="cap">다른 자판기</div><div class="grp">' +'<button type="button" data-act="go" data-go="/vendingForMe/"><span class="tint">시사 자판기</span><span class="v">세계 뉴스 · AI · 도구 ↗</span></button>' +'<button type="button" data-act="go" data-go="/vfm-mind/"><span class="tint">사람 자판기</span><span class="v">배댓 · 맨탈 ↗</span></button>' +'</div>' +
       '<div class="cap">내 기록</div><div class="grp">' +
       '<button type="button" data-act="box"><span class="tint">보관함 — 모든 앱에서 저장한 것 · 내 질문 · 이번 주 생각</span><span class="v">›</span></button>' +
       '<button type="button" data-act="export"><span class="tint">기록 내보내기</span><span class="v">파일 하나로</span></button>' +
@@ -307,6 +308,7 @@
       if (e.target === back) return back.remove();
       var b = e.target.closest("[data-act]"); if (!b) return;
       var act = b.getAttribute("data-act");
+      if (act === "go") { location.href = b.getAttribute("data-go"); return; }
       if (act === "box") { location.href = ROOT + "box/"; return; }
       if (act === "ytlogin") { var yu = "https://accounts.google.com/ServiceLogin?service=youtube&continue=" + encodeURIComponent("https://www.youtube.com/"); if (!openInChrome(yu)) window.open(yu, "_blank", "noopener"); return; }
       if (act === "login") { window.vfmSync.login().catch(function (x) { toast(x.message || "로그인 실패"); }); return; }

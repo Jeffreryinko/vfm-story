@@ -200,7 +200,13 @@ def main():
         print("목록", write_index(), "개"); return
     deadline = time.time() + a.max_minutes * 60
     done = miss = 0
-    for c in catalog():
+    # 사용자 요청('풀어 주세요')이 들어온 이야기를 먼저 (클로드 작가 대신 위키백과 원문 정리로 답함, 토큰 0)
+    try:
+        from easy_tools import requests_, mark_done
+        want = {str(r["id"]) for r in requests_("iyagi")}
+    except Exception:
+        want, mark_done = set(), None
+    for c in sorted(catalog(), key=lambda c: c["catId"] not in want):
         if time.time() > deadline: print("시간 한도 — 다음 실행에서 이어서"); break
         if a.limit and done >= a.limit: break
         f = OUT / f"{c['catId']}.json"
@@ -227,6 +233,9 @@ def main():
         f.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
         done += 1
         if done % 50 == 0: print(f"{done}개 · 못 찾음 {miss}", flush=True); write_index()
+    for cid in want:
+        f = OUT / f"{cid}.json"
+        if mark_done and f.exists() and json.loads(f.read_text(encoding="utf-8")).get("t"): mark_done("iyagi", cid)
     n = write_index()
     print(f"끝: 이번에 {done}개 · 못 찾음 {miss} · 목록 {n}개")
 

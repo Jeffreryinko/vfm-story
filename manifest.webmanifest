@@ -1,17 +1,30 @@
 {
-  "name": "자판기",
-  "short_name": "자판기",
-  "description": "시사 자판기 + 이야기 도서관 + AI 논문",
-  "start_url": "./",
-  "scope": "./",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#EEF2F3",
-  "theme_color": "#0C6E77",
-  "lang": "ko",
-  "icons": [
-    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+ "name": "이야기 자판기",
+ "short_name": "이야기 자판기",
+ "description": "시사 자판기 + 이야기 도서관 + AI 논문",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#EEF2F3",
+ "theme_color": "#0C6E77",
+ "lang": "ko",
+ "icons": [
+  {
+   "src": "assets/icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "assets/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "assets/icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
 }
