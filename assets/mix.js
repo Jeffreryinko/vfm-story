@@ -431,7 +431,7 @@
     }
     return out;
   }
-  var NAMES = KINDS.map(function (k) { return k[1].split(" ")[0]; }).filter(function (x, i, a) { return a.indexOf(x) === i; }).join("·");
+  var NAMES = [].concat.apply([], KINDS.map(function (k) { return k[1].split(" ")[0].split("·"); })).filter(function (x, i, a) { return a.indexOf(x) === i; }).join("·");
   NAMES += (function (c) { c = c.charCodeAt(0) - 0xAC00; return c >= 0 && c < 11172 && c % 28 ? "을" : "를"; })(NAMES.slice(-1));
   var deck = D.create({ id: "mix-home", app: "mix", emptyTitle: "불러오는 중이에요", emptyNote: "잠시만요. " + NAMES + " 모으고 있어요.", items: mixed,
     onShow: more });
