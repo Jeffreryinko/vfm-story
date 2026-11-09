@@ -12,8 +12,8 @@
   if (window.VFM_KINDS) KINDS = KINDS.filter(function (k) { return window.VFM_KINDS.indexOf(k[0]) >= 0; });
   var HAS = {}; KINDS.forEach(function (k) { HAS[k[0]] = 1; });
   var ONLY_STORY = HAS.story && !HAS.sisa;                              // 이야기 자판기: 이야기·역사가 주인공
-  var DEF = { sisa: 3, trend: 3, meme: 2, ai: 2, tool: 2, nation: 2, story: ONLY_STORY ? 3 : 1, wiki: 2, brain: 2, baedat: 3, mental: 3, book: 2 };
-  var WNAME = ["끄기", "적게", "보통", "많이"];
+  var DEF = { sisa: 3, trend: 3, meme: 2, ai: 2, tool: 2, nation: 2, story: ONLY_STORY ? 3 : 1, wiki: 2, brain: 2, baedat: 3, mental: 3, book: 3 };
+  var WNAME = ["끄기", "적게", "보통", "많이", "아주 많이"];
   var W = Object.assign({}, DEF, (function () { try { return JSON.parse(localStorage.getItem("vfm:mix:w") || "{}"); } catch (e) { return {}; } })());
   var POOL = { sisa: [], trend: [], meme: [], ai: [], tool: [], nation: [], story: [], wiki: [], brain: [], baedat: [], mental: [], book: [] };
   var CAT = { war: "전쟁·안보", pol: "정치·외교", eco: "경제·시장", tech: "기술·과학", dis: "재난·사고", soc: "사회", spo: "스포츠", cul: "문화" };
@@ -234,20 +234,35 @@
     }));
   });
   // 뇌: 부위 52개 카드 + 뇌과학 소식
-  if (HAS.brain) {
-    j("data/brain/regions.json").then(function (R) {
+  var BA = null;
+  function bAtoms(r) { return BA.atoms.filter(function (k) { var b = k.split(":")[0]; return (r.atoms || []).some(function (s) { return s.indexOf(":") >= 0 ? s === k : s === b; }); }); }
+  function bPic(ks, cap) {
+    if (!BA || !ks.length) return "";
+    var v = BA.views[0], bn = -1;
+    BA.views.forEach(function (w) { var n = 0; ks.forEach(function (k) { if (w.atoms[k]) n += w.atoms[k][1]; }); n *= w.kind === "proj" ? 1.25 : 1; if (n > bn) { bn = n; v = w; } });
+    var px = 0, ring = null, s = '<div style="position:relative;margin:4px 0 12px;border-radius:14px;overflow:hidden;background:#0b0b0f"><svg viewBox="0 0 ' + v.w + " " + v.h + '" style="display:block;width:100%;height:auto" role="img" aria-label="' + esc(cap) + '"><image href="data/brain/' + v.img + '" width="' + v.w + '" height="' + v.h + '"/>';
+    ks.forEach(function (k) { var a = v.atoms[k]; if (!a) return; px += a[1]; s += '<path d="' + a[0] + '" style="fill:rgba(255,45,120,.6);stroke:#ff2d78;stroke-width:1.2"/>'; if (!ring) ring = a[0]; });
+    s += '<path d="' + v.outline + '" style="fill:none;stroke:rgba(255,255,255,.45);stroke-width:1"/>';
+    if (px < 40 && ring) { var m = ring.match(/M(\d+) (\d+)/); if (m) s += '<circle cx="' + m[1] + '" cy="' + m[2] + '" r="14" style="fill:none;stroke:#ffd60a;stroke-width:2;stroke-dasharray:4 3"/>'; }
+    return s + '</svg><span style="position:absolute;left:10px;bottom:8px;font-size:12px;color:#fff;background:rgba(0,0,0,.55);padding:3px 8px;border-radius:8px">' + esc(cap) + " · " + esc(v.name || "") + "</span></div>";
+  }
+  if (HAS.brain) Promise.all([j("data/brain/regions.json"), j("data/brain/atlas.json")]).then(function (z) {
+    var R = z[0]; BA = z[1] && z[1].views ? z[1] : null;
+    if (BA) (R.views || []).forEach(function (m) { var v = BA.views.find(function (x) { return x.id === m.id; }); if (v) v.name = m.name; });
+    var RB = {}; ((R && R.regions) || []).forEach(function (r) { RB[r.id] = r; });
+    (function () {
       if (!R || !R.regions) return;
       add("brain", R.regions.map(function (r) {
         return { key: "r:" + r.id, kw: [r.ko], sa: "brain", kind: "brain", title: r.ko, url: location.origin + location.pathname + "brain/#r=" + r.id, shareText: r.ko + " (" + r.en + ")\n" + r.one, q: [r.ko, r.en, (r.alt || []).join(" "), r.one].join(" "),
           html: function () {
             return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag brain">뇌 부위</span><span>' + (r.lv === 1 ? "1단계" : "2단계") + "</span><span>" + esc(r.en) + "</span></div>" +
-              '<h2 class="vdk-t">' + esc(r.ko) + ((r.alt || []).length ? " <small>(" + esc(r.alt.join(", ")) + ")</small>" : "") + "</h2>" + P(r.one) +
+              '<h2 class="vdk-t">' + esc(r.ko) + ((r.alt || []).length ? " <small>(" + esc(r.alt.join(", ")) + ")</small>" : "") + "</h2>" + (BA ? bPic(bAtoms(r), r.ko) : "") + P(r.one) +
               (r.origin ? '<p class="vdk-h">이름 뜻</p>' + P(r.origin) : "") + ((r.role || []).length ? '<p class="vdk-h">하는 일</p><ol class="vdk-ol">' + r.role.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ol>" : "") +
               (r.like ? '<p class="vdk-h">비유하면</p>' + P(r.like) : "") + (r.where ? '<p class="vdk-h">어디쯤</p>' + P(r.where) : "") + (r.hurt ? '<p class="vdk-h">다치면</p>' + P(r.hurt) : "") +
               '<button type="button" class="vdk-more"' + go("brain/#r=" + r.id) + ">뇌 지도에서 보기 ›</button></div>";
           } };
       }));
-    });
+    })();
     j("data/brain/news.json").then(function (N) {
       if (!N || !N.items) return;
       add("brain", N.items.filter(function (x) { return x.lang === "ko" || x.ko; }).map(function (x) {
@@ -255,13 +270,14 @@
         return { key: "bn:" + x.id, kw: KWOF(t, x.title), sa: "brain", kind: "brain", title: t, url: x.url, shareText: t + "\n" + x.url, q: t + " " + x.title + " " + sm,
           html: function () {
             return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag brain">뇌과학 소식</span><span>' + esc(x.pub || "") + "</span><span>" + esc(String(x.date || "").slice(0, 10)) + "</span>" + (x.new ? '<b class="new">새 소식</b>' : "") + "</div>" +
-              '<h2 class="vdk-t">' + esc(t) + "</h2>" + (x.lang !== "ko" ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(x.title) + "</p>" : "") + (sm ? '<p class="vdk-h">요약 <small>(기계번역)</small></p>' + P(sm) : "") +
+              '<h2 class="vdk-t">' + esc(t) + "</h2>" + (x.lang !== "ko" ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(x.title) + "</p>" : "") +
+              (BA && (x.rs || []).length && RB[x.rs[0]] ? bPic([].concat.apply([], x.rs.filter(function (q) { return RB[q]; }).map(function (q) { return bAtoms(RB[q]); })), x.rs.filter(function (q) { return RB[q]; }).map(function (q) { return RB[q].ko; }).join(" · ")) : "") + (sm ? '<p class="vdk-h">요약 <small>(기계번역)</small></p>' + P(sm) : "") +
               '<a class="vdk-more" href="' + esc(x.lang === "ko" ? x.url : D.koUrl(x.url)) + '" target="_blank" rel="noopener">원문 보기 ↗</a>' +
               '<button type="button" class="vdk-more"' + go("brain/#news") + ">뇌 소식 전부 보기 ›</button></div>";
           } };
       }));
     });
-  }
+  });
   // 배댓: 자료는 시사 자판기 저장소(유튜브 키가 있는 곳)에 있음 — 같은 주소라 바로 읽힘
   var BD = "/vendingForMe/data/baedat/";
   if (HAS.baedat) j(BD + "index.json").then(function (ix) {
@@ -317,16 +333,19 @@
     var C = {}; b.cols.forEach(function (c, i) { C[c] = i; });
     var d0 = Math.floor((Date.now() + 9 * 3600e3) / 864e5), rows = b.rows.filter(function (r) { return r[C.r] >= 2; });
     rows = rows.slice(d0 * 13 % Math.max(rows.length, 1)).concat(rows.slice(0, d0 * 13 % Math.max(rows.length, 1))).slice(0, 80);
+    var tocOf = function (r) { return String(r[C.x] || "").indexOf("t") >= 0; };
+    rows = rows.filter(tocOf).concat(rows.filter(function (r) { return !tocOf(r); }));   // 목차 있는 책 먼저
     add("book", rows.map(function (r) {
       var id = r[C.id], t = r[C.t], a = r[C.a] || "", cv = r[C.cv] || "", cv2 = r[C.cv2] || "", hasToc = String(r[C.x] || "").indexOf("t") >= 0;
       return { key: "b:" + id, kw: [t], sa: "book", kind: "book", title: t, url: location.origin + location.pathname + "book/#b=" + id, shareText: t + " — " + a, q: t + " " + a,
         html: function () {
           return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag book">책</span><span>' + r[C.r] + "곳이 함께 추천</span><span>" + esc(r[C.f] || "") + "</span></div>" +
-            '<div style="display:flex;gap:14px;align-items:flex-start;margin:6px 0 10px"><span style="width:96px;flex:none;aspect-ratio:2/3;border-radius:6px;overflow:hidden;background:rgba(127,127,127,.15);display:block">' +
+            '<div style="display:flex;gap:14px;align-items:flex-start;margin:6px 0 10px"><span style="width:42%;max-width:180px;flex:none;aspect-ratio:2/3;border-radius:6px;overflow:hidden;background:rgba(127,127,127,.15);display:block">' +
             (cv ? '<img src="' + esc(cv) + '" data-alt="' + esc(cv2) + '" referrerpolicy="no-referrer" loading="lazy" alt="" style="width:100%;height:100%;object-fit:cover" onerror="if(this.dataset.alt){this.src=this.dataset.alt;this.dataset.alt=\'\'}else{this.remove()}">' : "") +
             '</span><span><h2 class="vdk-t" style="margin:0 0 6px">' + esc(t) + '</h2><p class="vdk-note" style="margin:0">' + esc(a) + (r[C.y] ? " · " + esc(r[C.y]) : "") + "</p></span></div>" +
             '<div class="vdk-p" data-bintro="' + esc(id) + '"></div>' +
-            (hasToc ? '<details class="mx-sec" data-btoc="' + esc(id) + '"><summary>목차 펼치기</summary><div class="mx-toc">불러오는 중…</div></details>' : '<p class="vdk-note">목차는 로봇이 찾는 중이에요</p>') +
+            (hasToc ? '<p class="vdk-h">목차</p><div class="mx-toc" data-btoc2="' + esc(id) + '"><p class="vdk-note">목차 불러오는 중…</p></div>' :
+              '<p class="vdk-note">목차는 로봇이 찾는 중이에요 · <a href="https://www.yes24.com/product/search?query=' + encodeURIComponent(t) + '" target="_blank" rel="noopener">YES24에서 목차 보기 ↗</a></p>') +
             '<button type="button" class="vdk-more"' + go("book/#b=" + id) + ">책 탭에서 자세히 ›</button></div>";
         } };
     }));
@@ -334,7 +353,17 @@
   // 책 카드: 소개 첫머리 채우기 · 목차 펼치면 그때 받아 오기 (data/book/w/조각.json)
   var BW = {};
   function bookDetail(id) { var sh = id.slice(1, 3); if (!BW[sh]) BW[sh] = j("data/book/w/" + sh + ".json"); return BW[sh].then(function (x) { return (x || {})[id]; }); }
+  var TOCL = '<ul style="margin:0 0 8px;padding:0 0 0 10px;list-style:none;border-left:2px solid rgba(52,168,83,.35);font-size:14px;line-height:1.65">';
+  function tocHtml(toc) {
+    var ls = String(toc || "").split("\n").filter(Boolean); if (!ls.length) return '<p class="vdk-note">목차가 아직 없어요</p>';
+    var li = function (a) { return a.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join(""); };
+    return TOCL + li(ls.slice(0, 18)) + "</ul>" + (ls.length > 18 ? '<details class="mx-sec"><summary>목차 나머지 ' + (ls.length - 18) + "줄</summary>" + TOCL + li(ls.slice(18, 200)) + "</ul></details>" : "");
+  }
   function fillBook(root) {
+    (root.querySelectorAll ? root.querySelectorAll("[data-btoc2]:not([data-done])") : []).forEach(function (el) {
+      el.setAttribute("data-done", "1");
+      bookDetail(el.getAttribute("data-btoc2")).then(function (d) { el.innerHTML = tocHtml(d && d.toc); });
+    });
     (root.querySelectorAll ? root.querySelectorAll("[data-bintro]:not([data-done])") : []).forEach(function (el) {
       el.setAttribute("data-done", "1");
       bookDetail(el.getAttribute("data-bintro")).then(function (d) { if (d && d.intro) el.textContent = d.intro.slice(0, 220) + (d.intro.length > 220 ? "…" : ""); else el.remove(); });
@@ -394,7 +423,7 @@
     for (;;) {
       var live = KINDS.map(function (k) { return k[0]; }).filter(function (k) { return W[k] > 0 && ptr[k] < POOL[k].length; });
       if (!live.length) break;
-      var tot = live.reduce(function (a, k) { return a + W[k] * W[k]; }, 0), r = Math.random() * tot, pick = live[0];   // 많이(3)=9, 보통(2)=4, 적게(1)=1 배
+      var tot = live.reduce(function (a, k) { return a + W[k] * W[k]; }, 0), r = Math.random() * tot, pick = live[0];   // 아주 많이(4)=16, 많이(3)=9, 보통(2)=4, 적게(1)=1 배
       for (var i = 0; i < live.length; i++) { r -= W[live[i]] * W[live[i]]; if (r <= 0) { pick = live[i]; break; } }
       var it = POOL[pick][ptr[pick]++];
       if (it.ready === false) continue;                               // 한국어로 못 읽는 카드는 넘겨보기에서 뺌 (찾기에는 나옴)
@@ -402,8 +431,9 @@
     }
     return out;
   }
-  var NAMES = KINDS.map(function (k) { return k[1].split(" ")[0]; }).join("·");
-  var deck = D.create({ id: "mix-home", app: "mix", emptyTitle: "불러오는 중이에요", emptyNote: "잠시만요. " + NAMES + "를 모으고 있어요.", items: mixed,
+  var NAMES = KINDS.map(function (k) { return k[1].split(" ")[0]; }).filter(function (x, i, a) { return a.indexOf(x) === i; }).join("·");
+  NAMES += (function (c) { c = c.charCodeAt(0) - 0xAC00; return c >= 0 && c < 11172 && c % 28 ? "을" : "를"; })(NAMES.slice(-1));
+  var deck = D.create({ id: "mix-home", app: "mix", emptyTitle: "불러오는 중이에요", emptyNote: "잠시만요. " + NAMES + " 모으고 있어요.", items: mixed,
     onShow: more });
   var sdeck = null;
 
@@ -411,12 +441,12 @@
   var host = document.getElementById("mix");
   function ratioHtml() {
     return '<div class="mx-ratio" id="mxRatio" hidden><p class="mx-rh">섞는 비율 <small>종류마다 고르세요 · 바꾸면 바로 다시 섞어요</small></p>' + KINDS.map(function (k) {
-      return '<div class="mx-row"><span>' + k[1] + '</span><div class="mx-seg">' + [3, 2, 1, 0].map(function (v) { return '<button type="button" data-mxw="' + k[0] + "|" + v + '" aria-pressed="' + (W[k[0]] === v) + '">' + WNAME[v] + "</button>"; }).join("") + "</div></div>";
+      return '<div class="mx-row"><span>' + k[1] + '</span><div class="mx-seg">' + [4, 3, 2, 1, 0].map(function (v) { return '<button type="button" data-mxw="' + k[0] + "|" + v + '" aria-pressed="' + (W[k[0]] === v) + '">' + WNAME[v] + "</button>"; }).join("") + "</div></div>";
     }).join("") + '<button type="button" class="mx-reset" data-mxw="reset">처음 비율로</button></div>';
   }
   host.innerHTML = '<div class="mx-top"><input id="mxq" type="search" placeholder="전부에서 찾기 (예: ' + (HAS.sisa ? "트럼프, 엔비디아" : HAS.story ? "임진왜란, 해마" : "웃긴, 콜드리딩") + ')" aria-label="한 번에 찾기"><button type="button" id="mxRatioBtn" aria-label="섞는 비율">비율</button></div>' +
-    ratioHtml() + '<p class="mx-note" id="mxNote">' + NAMES + '를 섞어서 한 장씩 · 옆으로 밀면 다음 · 본 것은 다시 안 나와요</p><div id="mxDeck">' + deck.html() + "</div>";
-  var q = document.getElementById("mxq"), qT = null, HT = null, htP = null, NOTE0 = NAMES + "를 섞어서 한 장씩 · 옆으로 밀면 다음 · 본 것은 다시 안 나와요";
+    ratioHtml() + '<p class="mx-note" id="mxNote">' + NAMES + ' 섞어서 한 장씩 · 옆으로 밀면 다음 · 본 것은 다시 안 나와요</p><div id="mxDeck">' + deck.html() + "</div>";
+  var q = document.getElementById("mxq"), qT = null, HT = null, htP = null, NOTE0 = NAMES + " 섞어서 한 장씩 · 옆으로 밀면 다음 · 본 것은 다시 안 나와요";
   // 역사 8만 편 제목 전부 (첫 찾기 때 한 번만 받음, 약 1MB)
   function histTitles() {
     if (!HAS.story) { HT = []; return Promise.resolve(HT); }
