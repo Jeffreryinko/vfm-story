@@ -376,10 +376,11 @@ async function renderBook(id) {
   // 소개 · 목차
   if (d.iko) h += `<div class="kv"><h4>책 소개 <span style="font-weight:500;color:var(--muted)">구글 TranslateGemma 기계번역</span></h4><div class="txt">${esc(d.iko)}</div><details style="margin-top:6px"><summary class="note">원문 보기</summary><div class="txt" style="margin-top:6px">${esc(d.intro)}</div></details></div>`;
   else if (d.intro) {
-    const cut = d.icut || /[^.!?。…"”'’)\]]$/.test(d.intro.trim());
+    const it = d.intro.trim(), dots = /(\.\.\.|…)$/.test(it);           // 서점이 앞부분만 주고 '...'로 끝낸 소개
+    const cut = d.icut || dots || /[^.!?。…"”'’)\]]$/.test(it);
     const more = d.y24 || (d.links || {}).yes24;
-    h += `<div class="kv"><h4>책 소개${cut ? ` <span style="font-weight:500;color:var(--muted)">앞부분</span>` : ""}</h4><div class="txt">${esc(d.intro)}${cut ? "…" : ""}</div>
-      ${cut ? `<p class="note" style="margin-top:6px">전체 소개는 로봇이 YES24에서 받아 오는 중이에요 · <a href="${esc(more)}" target="_blank" rel="noopener">지금 서점에서 전체 보기 ↗</a></p>` : ""}</div>`;
+    h += `<div class="kv"><h4>책 소개${cut ? ` <span style="font-weight:500;color:var(--muted)">앞부분</span>` : ""}</h4><div class="txt">${esc(it.replace(/(\.\.\.|…)$/, ""))}${cut ? "…" : ""}</div>
+      ${cut && more ? `<p class="note" style="margin-top:6px">${d.icut ? "전체 소개는 로봇이 YES24에서 받아 오는 중이에요" : "서점이 앞부분만 공개한 소개예요"} · <a href="${esc(more)}" target="_blank" rel="noopener">서점에서 전체 소개 보기 ↗</a></p>` : ""}</div>`;
   }
   if (d.toc) {
     const lines = d.toc.split("\n"), done = S.toc[id] || {}, n = Object.keys(done).length;
