@@ -115,7 +115,8 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
 const LS = { g(k, d) { try { const v = localStorage.getItem("vfm:brain:" + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
              s(k, v) { try { localStorage.setItem("vfm:brain:" + k, JSON.stringify(v)); } catch (e) { toast("저장 공간이 꽉 찼어요"); } } };
 const S = { srs: LS.g("srs", {}), star: LS.g("star", {}), memo: LS.g("memo", {}), nstar: LS.g("nstar", {}), read: LS.g("read", {}), log: LS.g("log", {}),
-            per: LS.g("per", 5), color: LS.g("color", 1), depth: LS.g("depth", "s"), view: LS.g("view", "lat"), nick: LS.g("nick", ""), nf: "" };
+            per: LS.g("per", 5), color: LS.g("color", 1), depth: LS.g("depth", "s"), view: LS.g("view", "lat"), nick: LS.g("nick", ""), nf: "",
+            sread: LS.g("sread", {}), sstar: LS.g("sstar", {}), sf: "" };
 function save(k) { LS.s(k, S[k]); }
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 function toast(m) { const t = document.createElement("div"); t.className = "toast"; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2000); }
@@ -137,7 +138,7 @@ const GROUPS = [
   ["뇌간의 작은 핵", ["sn", "vta", "lc", "raphe"]],
   ["샘 · 길 · 방", ["pituitary", "pineal", "cc", "fornix", "ventricle", "whitematter"]],
 ];
-let R = {}, RL = [], A = null, NEWS = null, IDX = null, WIKI = null, ORDER = [];
+let R = {}, RL = [], A = null, NEWS = null, IDX = null, WIKI = null, ORDER = [], ST = null;
 
 /* ───── 자료 ───── */
 async function loadAll() {
@@ -154,6 +155,7 @@ async function loadAll() {
   getJ("_index.json").then(x => { IDX = x; if ((location.hash || "").startsWith("#news") && NEWS) paint(); }).catch(() => { });
   getJ("news.json").then(x => { NEWS = x; if (/^#(today|news)?$/.test(location.hash || "") || (location.hash || "").startsWith("#news")) paint(); }).catch(() => { NEWS = { items: [] }; });
   getJ("wiki.json").then(x => { WIKI = x; }).catch(() => { WIKI = {}; });
+  getJ("stories.json").then(x => { ST = x; const h = location.hash || ""; if (/^#(today)?$/.test(h) || h.startsWith("#st")) paint(); }).catch(() => { ST = { items: [] }; });
 }
 function hasAtom(r, key) { const base = key.split(":")[0]; return r.atoms.some(s => s.includes(":") ? s === key : s === base); }
 function atomsOf(id) { const r = R[id]; return r ? A.atoms.filter(k => hasAtom(r, k)) : []; }
@@ -225,9 +227,80 @@ function renderToday() {
   const show = nw.length ? nw : due.slice(0, 5);
   if (show.length) { const v = bestView(show[0]); h += `<div class="mini">${mapSvg(v, { hl: atomsOf(show[0]), hl2: show.slice(1).flatMap(atomsOf), capx: R[show[0]].ko + (show.length > 1 ? " 외 " + (show.length - 1) + "곳 (노랑)" : "") })}</div>`; }
   h += `<button class="btn wide t3go" data-go="#3d${show.length ? "=" + show[0] : ""}">🧠 3D로 돌려 보기 ›</button>`;
+  h += storySection();
   h += boardBox(true);
   h += newsSection(8);
   return h;
+}
+
+/* ───── 뇌 이야기: 《생각의 탄생》·《ADHD 2.0》 인물 일화 75장 (data/brain/stories.json) ───── */
+const SB = { "생각의 탄생": "생각의 탄생", "ADHD 2.0 · 뇌과학": "ADHD 2.0 · 뇌과학" };
+function todayStory() {                                   // 날마다 바뀌는 '오늘의 이야기' (안 읽은 것 먼저)
+  const l = (ST && ST.items) || []; if (!l.length) return null;
+  const k = DAY() % l.length;
+  for (let i = 0; i < l.length; i++) { const c = l[(k + i) % l.length]; if (!S.sread[c.id]) return c; }
+  return l[k];
+}
+function storyCard(c) {
+  const read = S.sread[c.id] ? " read" : "", star = S.sstar[c.id] ? " star" : "";
+  return `<button class="card${read}${star}" data-st="${c.id}"><div class="bx"><p class="t">${esc(c.title)}</p><p class="s">${esc(c.insight)}</p>
+    <div class="meta"><span class="bd src">${esc(c.book)}</span>${c.field ? `<span>${esc(c.field)}</span>` : ""}<span>No.${c.n}</span></div>
+    ${(c.rs || []).length ? `<div style="margin-top:6px">${c.rs.map(r => R[r] ? `<span class="rc">${esc(R[r].ko)}</span>` : "").join("")}</div>` : ""}</div></button>`;
+}
+function storySection() {
+  if (!ST) return "";
+  const l = ST.items || []; if (!l.length) return "";
+  const c = todayStory(), nr = l.filter(x => S.sread[x.id]).length;
+  return `<h2 class="sec">생각·주의력 이야기<small>읽음 ${nr}/${l.length}</small><button data-go="#st">전부 ›</button></h2>` +
+    `<p class="note" style="margin-top:-4px">《생각의 탄생》과 《ADHD 2.0》에 나오는 인물 일화. 하루 한 장씩 바뀌어요.</p>` + (c ? storyCard(c) : "");
+}
+function storyList(f) {
+  let l = (ST && ST.items) || [];
+  if (f === "unread") l = l.filter(c => !S.sread[c.id]);
+  else if (f === "star") l = l.filter(c => S.sstar[c.id]);
+  else if (f === "rs") l = l.filter(c => (c.rs || []).length);
+  else if (f) l = l.filter(c => c.book === f);
+  return l;
+}
+function storyDeckCard(c) {
+  return `<div class="vdk-body"><div class="vdk-k"><span class="bd src">${esc(c.book)}</span><span>${esc(c.ch)}</span><span>No.${c.n}</span></div>
+    <h2 class="vdk-t">${esc(c.title)}</h2>${c.who ? `<p class="vdk-note" style="margin:-6px 0 10px">${esc(c.who)}${c.field ? " · " + esc(c.field) : ""}</p>` : ""}
+    <p class="vdk-p">${esc(c.story)}</p><p class="vdk-h">핵심 통찰</p><p class="vdk-p">${esc(c.insight)}</p>
+    ${(c.rs || []).length ? `<p class="vdk-note">나온 부위: ${c.rs.filter(r => R[r]).map(r => `<button type="button" class="rc" data-r="${r}">${esc(R[r].ko)}</button>`).join("")}</p>` : ""}
+    <button type="button" class="vdk-more" data-st="${c.id}">별표 · 메모 ›</button></div>`;
+}
+function renderStories() {
+  const l0 = (ST && ST.items) || [];
+  let h = `<div class="top"><button class="ib" data-act="back" aria-label="뒤로">‹</button></div>` + head("생각·주의력 이야기", `${l0.length}장 · 읽음 ${l0.filter(c => S.sread[c.id]).length} · 별표 ${Object.keys(S.sstar).length}`);
+  if (!ST) return h + '<p class="note">불러오는 중…</p>';
+  const F = [["", "전체"], ["생각의 탄생", "생각의 탄생"], ["ADHD 2.0 · 뇌과학", "ADHD 2.0 · 뇌과학"], ["unread", "안 읽은 것"], ["star", "별표"], ["rs", "뇌 부위 나온 것"]];
+  h += `<div class="chips">${F.map(([k, n]) => `<button data-sf="${k}" class="${S.sf === k ? "on" : ""}">${n}<small>${storyList(k).length}</small></button>`).join("")}</div>`;
+  if (D) h += D.modeSwitch("brain-st", () => paint());
+  const l = storyList(S.sf);
+  if (D && D.mode("brain-st") === "deck") return h + D.create({ id: "brain-st-" + (S.sf || "all"), app: "brain", emptyTitle: "다 읽었어요",
+    items: () => storyList(S.sf).map(c => ({ key: "bs:" + c.id, sa: "brain", title: c.title, url: location.origin + location.pathname + "#st=" + c.id, shareText: c.title + "\n" + c.insight, html: () => storyDeckCard(c), c })),
+    onShow(x) { if (x.c && !S.sread[x.c.id]) { S.sread[x.c.id] = 1; save("sread"); } }, onList: () => { try { localStorage.setItem("vfm:mode:brain-st", '"list"'); } catch (e) { } paint(); } }).html();
+  if (!l.length) return h + '<p class="empty">없어요</p>';
+  let ch = "";
+  for (const c of l) { if (c.ch !== ch) { ch = c.ch; h += `<h2 class="sec" style="font-size:15px">${esc(c.book)} · ${esc(ch)}</h2>`; } h += storyCard(c); }
+  return h + `<p class="note">출처: ${esc(ST.src || "")}</p>`;
+}
+function openStory(id) {
+  const c = ((ST && ST.items) || []).find(x => x.id === id); if (!c) return;
+  S.sread[id] = 1; save("sread");
+  const r0 = (c.rs || []).find(r => R[r]);
+  const back = document.createElement("div"); back.className = "back"; back.dataset.s = id;
+  back.innerHTML = `<div class="sheet" role="dialog"><div class="grab"></div><div class="meta" style="margin-bottom:6px"><span class="bd src">${esc(c.book)}</span><span>${esc(c.ch)}</span><span>No.${c.n}</span></div>
+    <h3>${esc(c.title)}</h3>${c.who ? `<p class="note">${esc(c.who)}${c.field ? " · " + esc(c.field) : ""}</p>` : ""}
+    ${r0 ? `<div class="mini">${mapSvg(bestView(r0), { hl: atomsOf(r0), hl2: c.rs.slice(1).filter(r => R[r]).flatMap(atomsOf), capx: R[r0].ko })}</div>` : ""}
+    <div class="wiki" style="white-space:normal">${esc(c.story)}</div>
+    <div class="origin" style="margin-top:10px"><b>핵심 통찰</b> ${esc(c.insight)}</div>
+    ${(c.rs || []).length ? `<p class="note" style="margin-top:8px">나온 부위 (누르면 설명)</p><div>${c.rs.filter(r => R[r]).map(r => `<button class="rc" data-r="${r}">${esc(R[r].ko)}</button>`).join("")}</div>` : ""}
+    <div class="row2" style="margin:10px 0"><button class="btn" data-act="sstar">${S.sstar[id] ? "★ 별표 해제" : "☆ 별표"}</button><button class="btn" data-act="sthink">✎ 생각</button><button class="btn" data-act="sshare">공유</button></div>
+    <p class="note">내 메모</p><textarea id="memo" placeholder="이 이야기에서 기억할 것">${esc(S.memo["s:" + id] || "")}</textarea></div>`;
+  document.body.appendChild(back);
+  const ta = back.querySelector("#memo"); ta.addEventListener("input", () => { if (ta.value.trim()) S.memo["s:" + id] = ta.value; else delete S.memo["s:" + id]; save("memo"); });
+  back.addEventListener("click", e => { if (e.target === back) closeSheet(); });
 }
 
 /* ───── 소식 ───── */
@@ -368,6 +441,8 @@ function renderRegion(id, vsel) {
     const rel = ((NEWS && NEWS.items) || []).filter(p => (p.rs || []).includes(id));
     h += `<div class="kv"><h4>이 부위가 나온 소식 ${rel.length}개</h4></div>` + rel.slice(0, 10).map(newsCard).join("");
   }
+  const srel = ((ST && ST.items) || []).filter(c => (c.rs || []).includes(id));
+  if (srel.length) h += `<div class="kv"><h4>이 부위가 나오는 이야기 ${srel.length}개</h4></div>` + srel.map(storyCard).join("");
   h += `<div class="box" style="margin-top:14px"><p class="note" style="margin:0 0 6px">${boxLabel(id)}</p><div class="row"><button class="btn sm" data-act="quiz1" data-id="${id}">이것만 퀴즈</button><button class="btn sm" data-act="think" data-id="${id}">✎ 생각</button>${S.srs[id] ? `<button class="btn sm" data-act="reset1" data-id="${id}">처음부터 다시</button>` : `<button class="btn sm" data-act="add1" data-id="${id}">오늘 외울 것에 넣기</button>`}</div></div>`;
   h += `<p class="note">내 메모</p><textarea class="memo" id="rmemo" data-id="${id}" placeholder="내 말로 적어 두기 (예: 해마 = 기억 접수 사서)">${esc(S.memo[id] || "")}</textarea>`;
   return h;
@@ -596,6 +671,8 @@ function renderShelf() {
   const memos = Object.keys(S.memo).filter(k => R[k]);
   if (memos.length) h += `<h2 class="sec">내 메모</h2><div class="list">${memos.map(k => `<button class="li" data-r="${k}"><span class="bx"><p class="t">${esc(R[k].ko)}</p><p class="s">✎ ${esc(S.memo[k])}</p></span></button>`).join("")}</div>`;
   h += `<h2 class="sec">별표 소식</h2>` + (ns.length ? ns.map(([id, v]) => newsCard(Object.assign({}, v.item, { id }))).join("") : '<p class="note">소식을 열고 ☆ 별표를 누르면 지나간 것도 계속 남아요</p>');
+  const ss = Object.keys(S.sstar).sort((a, b) => S.sstar[b].at - S.sstar[a].at).map(k => ((ST && ST.items) || []).find(c => c.id === k)).filter(Boolean);
+  h += `<h2 class="sec">별표 이야기<button data-go="#st">전부 ›</button></h2>` + (ss.length ? ss.map(storyCard).join("") : '<p class="note">이야기를 열고 ☆ 별표를 누르면 여기 모여요</p>');
   h += `<h2 class="sec">정리</h2><div class="row"><button class="btn sm" data-act="clearread">읽음 표시 지우기</button><button class="btn sm" data-act="resetall">외우기 진도 처음부터</button></div>`;
   h += `<p class="note" style="margin-top:12px">기록은 이 폰에 저장돼요. 구글로 로그인하면 폰·PC가 같은 진도를 봐요 (⋯ 설정).</p>`;
   return h;
@@ -631,6 +708,8 @@ async function paint() {
     else if (h.startsWith("#s=")) { if (!SES) { if (!startSession(h.slice(3))) { nav("#learn", true); return; } } app.innerHTML = `<div class="ses">${renderSession()}</div>`; }
     else if (h === "#shelf") app.innerHTML = renderShelf();
     else if (h === "#news") app.innerHTML = renderNews();
+    else if (h === "#st") app.innerHTML = renderStories();
+    else if (h.startsWith("#st=")) { app.innerHTML = renderStories(); if (ST) { const sid = h.slice(4); try { history.replaceState(history.state, "", location.pathname + "#st"); } catch (x) { } setTimeout(() => openStory(sid), 0); } }
     else if (h === "#find") { app.innerHTML = `<div class="top"><button class="ib" data-act="back" aria-label="뒤로">‹</button></div>` + head("찾기", "부위 이름·영어·다른 이름, 그리고 소식 제목에서") + `<input class="search" id="fq" type="search" placeholder="예: 해마, amygdala, 도파민" value="${esc(mapQ)}" autofocus><div id="fres"></div>`; const q = document.getElementById("fq"); const run = () => { mapQ = q.value; const t = mapQ.trim().toLowerCase(); const rs = t ? RL.filter(r => [r.ko, r.en, ...r.alt, r.one].join(" ").toLowerCase().includes(t)) : []; const ns = t.length > 1 ? ((NEWS && NEWS.items) || []).filter(p => [p.title, p.ko, p.ksum].join(" ").toLowerCase().includes(t)) : []; document.getElementById("fres").innerHTML = (rs.length ? `<div class="list">${rs.map(r => regionLi(r.id)).join("")}</div>` : "") + ns.slice(0, 30).map(newsCard).join("") || (t ? '<p class="empty">못 찾았어요</p>' : ""); }; q.addEventListener("input", run); run(); }
     else app.innerHTML = renderToday();
   } catch (e) { app.innerHTML = `<p class="empty">못 그렸어요<br><small>${esc(e.message)}</small></p>`; console.error(e); }
@@ -638,7 +717,7 @@ async function paint() {
 }
 
 document.addEventListener("click", async e => {
-  const t = e.target.closest("[data-v],[data-go],[data-r],[data-n],[data-view],[data-rview],[data-depth],[data-act],[data-grade],[data-pick],[data-per],[data-nf],[data-t3],path.at"); if (!t) return;
+  const t = e.target.closest("[data-v],[data-go],[data-r],[data-n],[data-st],[data-sf],[data-view],[data-rview],[data-depth],[data-act],[data-grade],[data-pick],[data-per],[data-nf],[data-t3],path.at"); if (!t) return;
   const d = t.dataset;
   if (t.matches("path.at")) {
     if (location.hash.startsWith("#s=") && SES) { const it = SES.q[SES.i]; if (it && it.t === "tap" && !SES.ans) { answer(atomsOf(it.id).includes(d.a), d.a); paint(); } return; }
@@ -649,6 +728,8 @@ document.addEventListener("click", async e => {
   if (d.go) { closeSheet(); return nav(d.go); }
   if (d.r) { e.stopPropagation(); closeSheet(); return nav("#r=" + d.r); }
   if (d.n) return openNews(d.n);
+  if (d.st) { closeSheet(); return openStory(d.st); }
+  if (d.sf != null) { S.sf = d.sf; if (D) D.stale("brain"); return paint(); }
   if (d.view) { if (d.view !== "3d") { S.view = d.view; save("view"); } return nav("#map=" + d.view); }
   if (d.rview) { const id = location.hash.slice(3).split("@")[0]; try { history.replaceState(history.state, "", location.pathname + "#r=" + id + "@" + d.rview); } catch (x) { } return paint(); }
   if (d.depth) { S.depth = d.depth; save("depth"); return paint(); }
@@ -675,6 +756,15 @@ document.addEventListener("click", async e => {
   if (a === "nick") { const v = prompt("점수판에 보일 이름", S.nick || ""); if (v != null) { S.nick = v.trim().slice(0, 20); save("nick"); BOARD = null; pushBoard(); setTimeout(loadBoard, 1200); } return; }
   if (a === "leaveboard") { const c = sbClient(); LS.s("noBoard", 1); if (c) { try { await c.from("brain_board").delete().eq("user_id", window.vfmSync.user().id); } catch (x) { } } toast("점수판에서 빠졌어요"); return paint(); }
   if (a === "joinboard") { LS.s("noBoard", 0); BOARD = null; return paint(); }
+  const ss = t.closest(".back");
+  if (ss && ss.dataset.s) {
+    const id = ss.dataset.s, c = ((ST && ST.items) || []).find(x => x.id === id) || {};
+    const url = location.origin + location.pathname + "#st=" + id;
+    if (a === "sstar") { if (S.sstar[id]) delete S.sstar[id]; else S.sstar[id] = { at: Date.now() }; save("sstar"); t.textContent = S.sstar[id] ? "★ 별표 해제" : "☆ 별표"; toast(S.sstar[id] ? "보관함에 넣었어요" : "별표 해제"); }
+    else if (a === "sthink") { if (window.vfm && window.vfm.think) window.vfm.think({ app: "brain", key: "s:" + id, title: c.title, url }); }
+    else if (a === "sshare") { const text = `${c.title}\n${c.insight}\n${url}`; if (navigator.share) navigator.share({ title: c.title, text, url }).catch(() => { }); else { try { await navigator.clipboard.writeText(text); toast("복사했어요"); } catch (x) { } } }
+    return;
+  }
   const sh = t.closest(".back"); if (!sh || !sh.dataset.n) return;
   const id = sh.dataset.n, p = ((NEWS && NEWS.items) || []).find(x => x.id === id) || (S.nstar[id] && S.nstar[id].item) || {};
   if (a === "nstar") { if (S.nstar[id]) delete S.nstar[id]; else { const keep = {}; for (const k of ["src", "lang", "title", "ko", "sum", "ksum", "url", "date", "pub", "rs"]) if (p[k]) keep[k] = p[k]; S.nstar[id] = { at: Date.now(), item: keep }; } save("nstar"); t.textContent = S.nstar[id] ? "★ 별표 해제" : "☆ 별표"; toast(S.nstar[id] ? "보관함에 넣었어요" : "별표 해제"); }

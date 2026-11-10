@@ -278,6 +278,19 @@
       }));
     });
   });
+  // 뇌: 생각·주의력 이야기 75장 (《생각의 탄생》·《ADHD 2.0》 인물 일화 — data/brain/stories.json)
+  if (HAS.brain) j("data/brain/stories.json").then(function (Z) {
+    if (!Z || !Z.items) return;
+    add("brain", Z.items.map(function (c) {
+      return { key: "bs:" + c.id, kw: [c.who.split(/[(&,]/)[0].trim()].filter(Boolean), sa: "brain", kind: "brain", title: c.title, url: location.origin + location.pathname + "brain/#st=" + c.id,
+        shareText: c.title + "\n" + c.insight, q: [c.title, c.who, c.field, c.story, c.insight].join(" "),
+        html: function () {
+          return '<div class="vdk-body"><div class="vdk-k"><span class="mx-tag brain">뇌 이야기</span><span>' + esc(c.book) + "</span><span>" + esc(c.field || "") + "</span></div>" +
+            '<h2 class="vdk-t">' + esc(c.title) + "</h2>" + (c.who ? '<p class="vdk-note" style="margin:-6px 0 10px">' + esc(c.who) + "</p>" : "") + P(c.story) +
+            '<p class="vdk-h">핵심 통찰</p>' + P(c.insight) + '<button type="button" class="vdk-more"' + go("brain/#st=" + c.id) + ">뇌 탭에서 보기 · 별표 · 메모 ›</button></div>";
+        } };
+    }));
+  });
   // 배댓: 자료는 시사 자판기 저장소(유튜브 키가 있는 곳)에 있음 — 같은 주소라 바로 읽힘
   var BD = "/vendingForMe/data/baedat/";
   if (HAS.baedat) j(BD + "index.json").then(function (ix) {
