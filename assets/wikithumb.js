@@ -42,9 +42,18 @@
         var src = p.thumbnail && p.thumbnail.source || "";
         [p.title].concat(map[p.title] || []).forEach(function (t) { got[t] = src; });
       });
-      titles.forEach(function (t) { MEM[lang + ":" + t] = got[t] || ""; });
+      titles.forEach(function (t) { var k = lang + ":" + t; MEM[k] = got[t] || ""; if (WARM[k] && MEM[k]) preload(MEM[k]); });
       save(); paint();
     }).catch(function () { });                       // 실패하면 그대로 (다음에 다시)
+  }
+  var WARM = {};
+  function preload(u) { var p = new Image(); p.decoding = "async"; p.src = u; }
+  function warm(k) {                                   // 아직 화면에 없는 카드의 위키 사진을 미리 (다음 카드용)
+    if (!k || WARM[k]) return; WARM[k] = 1;
+    var v = MEM[k]; if (v) return preload(v); if (v === "") return;
+    var i = k.indexOf(":"); if (i < 1) return;
+    (queue[k.slice(0, i)] = queue[k.slice(0, i)] || new Set()).add(k.slice(i + 1));
+    if (!timer) timer = setTimeout(flush, 120);
   }
   function want(img) {
     if (apply(img)) return;
@@ -65,7 +74,7 @@
   }
   new MutationObserver(function () { clearTimeout(paint._t); paint._t = setTimeout(paint, 60); }).observe(document.documentElement, { childList: true, subtree: true });
   document.addEventListener("error", function (e) { var t = e.target; if (t && t.classList && t.classList.contains("wt-on")) { var p = t.parentElement; t.remove(); if (p) p.classList.add("wt-none"); } }, true);
-  window.WT = { paint: paint, wikiOf: function (url) {             // 위키백과 주소 → "ko:제목"
+  window.WT = { paint: paint, warm: warm, wikiOf: function (url) {             // 위키백과 주소 → "ko:제목"
     var m = /^https?:\/\/([a-z\-]+)\.(?:m\.)?wikipedia\.org\/wiki\/([^#?]+)/.exec(url || ""); if (!m) return "";
     try { return m[1] + ":" + decodeURIComponent(m[2]).replace(/_/g, " "); } catch (e) { return ""; }
   } };

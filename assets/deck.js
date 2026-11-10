@@ -160,6 +160,35 @@
     }
     this.save(); return true;
   };
+  // 다음에 나올 카드 n장 (넘기기 전에 사진을 미리 받아 두려고)
+  Deck.prototype.upcoming = function (n) {
+    this.ensure();
+    var self = this, out = [], used = {};
+    this.hist.forEach(function (x) { used[x] = 1; });
+    for (var i = this.pos + 1; i < this.hist.length && out.length < n; i++) out.push(this.hist[i]);
+    for (var j = 0; j < this.queue.length && out.length < n; j++) { var x = this.queue[j]; if (!used[x] && !self.seen(x) && x !== this.curKey()) out.push(x); }
+    return out;
+  };
+  // 다음 카드 3장의 사진을 미리 받아 둠 → 넘기면 바로 보임 (사진 서버가 처음 받는 사진은 줄이는 데 1~2초 걸려서)
+  var WARMED = {};
+  Deck.prototype.warm = function () {
+    var self = this;
+    clearTimeout(this.warmT);
+    this.warmT = setTimeout(function () {
+      self.upcoming(3).forEach(function (k) {
+        if (WARMED[self.id + "|" + k]) return; WARMED[self.id + "|" + k] = 1;
+        var it = self.map[k], h = ""; if (!it) return;
+        try { h = it.html(); } catch (e) { return; }
+        var box = document.createElement("template"); box.innerHTML = h;            // template 안은 그리지도 받지도 않음 → 주소만 뽑음
+        box.content.querySelectorAll("img").forEach(function (im) {
+          var src = im.getAttribute("src"), wt = im.getAttribute("data-wt");
+          if (src && !/^data:/.test(src)) { var p = new Image(); p.decoding = "async"; p.referrerPolicy = "no-referrer"; p.src = src; }
+          else if (wt && window.WT && window.WT.warm) window.WT.warm(wt);
+        });
+        box.content.querySelectorAll("[data-yt]").forEach(function (sp) { var p = new Image(); p.src = "https://i.ytimg.com/vi/" + sp.getAttribute("data-yt") + "/hqdefault.jpg"; });
+      });
+    }, 250);
+  };
   Deck.prototype.prev = function () {
     this.ensure();
     if (this.pos <= 0) { toast("첫 카드예요"); return false; }
@@ -193,7 +222,7 @@
   };
   Deck.prototype.html = function () {
     this.ensure();
-    this.armDwell();
+    this.armDwell(); this.warm();
     var head = this.o.head ? this.o.head() : "";
     return '<div class="vdk" data-vdk-host="' + esc(this.id) + '">' + head + this.cardHtml() + "</div>";
   };
@@ -212,7 +241,7 @@
     if (dir) { card.classList.add(dir > 0 ? "in-r" : "in-l"); requestAnimationFrame(function () { requestAnimationFrame(function () { card.classList.remove("in-r", "in-l"); }); }); }
     var top = host.getBoundingClientRect().top;
     if (top < 0 || top > window.innerHeight * 0.6) window.scrollTo({ top: Math.max(0, window.scrollY + top - 8), behavior: dir ? "auto" : "smooth" });
-    this.armDwell();
+    this.armDwell(); this.warm();
     if (this.o.onShow) { var k = this.curKey(); if (k && this.map[k]) try { this.o.onShow(this.map[k]); } catch (e) { } }
   };
   // 한 카드를 4초 넘게 보고 있으면 본 것으로 (앱을 껐다 켜도 다시 안 나오게. 보던 카드는 cur 로 남아 그대로 보임)
