@@ -1,7 +1,7 @@
 /* sw.js — 홈화면 앱(PWA)용. 앱 껍데기는 미리 저장, 데이터는 네트워크 우선 + 실패하면 마지막 저장본. */
-const VER = "vfm-v63-story";
+const VER = "vfm-v64-gal";
 const SHELL = ["./", "./index.html", "./iyagi/", "./iyagi/index.html", "./history/", "./history/index.html", "./brain/", "./brain/index.html", "./book/", "./book/index.html", "./box/", "./box/index.html",
-  "./assets/claude-shim.js", "./assets/deck.js", "./assets/trendcard.js", "./assets/mix.js", "./assets/shell.js", "./assets/polish.css", "./assets/sync.js", "./assets/sync-config.js", "./assets/apple.css", "./assets/hot.js", "./assets/history-player.js", "./assets/history-player.css", "./assets/wikithumb.js", "./manifest.webmanifest"];
+  "./assets/claude-shim.js", "./assets/deck.js", "./assets/trendcard.js", "./assets/mix.js", "./assets/shell.js", "./assets/wikigal.js", "./assets/polish.css", "./assets/sync.js", "./assets/sync-config.js", "./assets/apple.css", "./assets/hot.js", "./assets/history-player.js", "./assets/history-player.css", "./assets/wikithumb.js", "./manifest.webmanifest"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VER).then(c => c.addAll(SHELL).catch(() => {})).then(() => self.skipWaiting()));

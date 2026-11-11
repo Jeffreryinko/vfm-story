@@ -969,6 +969,9 @@ function wtOf(s){
   const o=String(s.orig||"").split(" · ")[0].trim();
   return o&&o.length<=30?"ko:"+o:"";
 }
+// 위키백과 사진 모음 (assets/wikigal.js 가 채움). 사람 이야기는 얼굴 사진이 많아 넣지 않아요.
+const NOGAL=/사람의 생애|창작과 도전/;
+const galOf=(key,group)=>key&&!NOGAL.test(group||"")?`<div data-gal="${esc(key)}"></div>`:"";
 function card(s){
   const L=lvl(s.id), wt=wtOf(s);
   return `<article class="card has-thumb"><div class="thumb">${cover(s,60,80)}${wt?`<img class="wth" data-wt="${esc(wt)}" alt="" loading="lazy" decoding="async">`:""}</div><div class="cbody"><h3><button class="tbtn" data-act="open" data-id="${s.id}" data-d="d1">${esc(s.title)}</button></h3>
@@ -2670,6 +2673,7 @@ function renderCatRead(){
     <h1 class="title">${esc(c.orig)}</h1>
     <p class="kicker"><span>${esc(c.region)}</span><span>·</span><span>${esc(c.era)}</span></p>
     <div class="prose">${wikiParas(d).map(x=>`<p>${esc(x)}</p>`).join("")}</div>
+    ${galOf(d.l+":"+d.t,c.group||d.g)}
     ${d.ko_lead&&d.lead?`<details class="part"><summary>영어 원문 첫 부분</summary>${d.lead.map(x=>`<p>${esc(x)}</p>`).join("")}</details>`:""}
     ${(d.secs||[]).map(x=>`<details class="part"><summary>${esc(x.h)}${d.l==="en"?" (영어)":""}</summary>${x.p.map(y=>`<p>${esc(y)}</p>`).join("")}</details>`).join("")}
     ${D?D.bar("iyagi",c.id,{title:c.orig,url:appUrl("#cat-"+c.id),text:c.orig+(WIKIBY[c.id].h?"\n"+WIKIBY[c.id].h:"")}):""}
@@ -2983,6 +2987,7 @@ function renderRead(){
     <h1 class="title">${esc(s.title)}</h1>
     <p class="orig">${esc(s.orig)}</p>
     ${artFig(s)}
+    ${galOf(wtOf(s),s.group)}
     <dl class="catalog">
       <dt>배경</dt><dd>${esc(s.region)} · ${esc(s.era)}</dd>
       <dt>근거</dt><dd><span class="basis">${esc(s.basis)}</span>${robotTag(s)}</dd>
@@ -3250,6 +3255,7 @@ route();
 
 
 <script src="../assets/wikithumb.js"></script>
+<script src="../assets/wikigal.js"></script>
 <script src="../assets/shell.js"></script>
 <script>
 /* 책 탭과 잇기: 이 이야기·원문과 맞는 권장도서 (data/book/link.json, 책 로봇이 만듦) */

@@ -104,6 +104,7 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
   <button data-v="shelf"><b>☆</b>내 기록</button>
 </nav>
 <script src="../assets/wikithumb.js"></script>
+<script src="../assets/wikigal.js"></script>
 <script src="../assets/history-player.js"></script>
 <script>
 "use strict";
@@ -507,6 +508,7 @@ async function renderPage(id) {
     ${rolesHtml(p)}${causeHtml(p)}${kwHist(p)}
     ${p.desc && /[가-힣]/.test(p.desc) ? `<p class="note" style="margin-top:6px">${esc(p.desc)}</p>` : ""}
     ${S.cfg.pics && p.img ? `<img class="hero" src="${esc(p.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}
+    ${S.cfg.pics && p.k !== "person" ? `<div data-gal="ko:${esc(p.title)}"></div>` : ""}
     <div class="depth">${[["short", "짧게"], ["more", "자세히"], ["deep", "깊게"]].map(([k, n]) => `<button data-depth="${k}" class="${d === k ? "on" : ""}">${n}</button>`).join("")}</div>
     <div id="body">${depthHtml[d]}</div>
     <h2 class="sec">이어 읽기 <small>역사는 선으로</small></h2><div class="rel" id="rel"></div><div id="relBox"></div>
