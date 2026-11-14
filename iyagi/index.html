@@ -630,6 +630,8 @@ function addStory(s){
   byId[s.id]=s;STORIES.push(s);return true;
 }
 (window.IYAGI_ADD||[]).forEach(o=>{o.claude=1;addStory(o)});
+/* Claude(API)가 위키백과를 바탕으로 쓴 이야기 — 시사 자판기 저장소 robot/iyagi_claude.py */
+fetch("/vendingForMe/data/iyagi/claude_stories.json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(j=>{if(!j||!Array.isArray(j.items))return;let n=0;j.items.forEach(o=>{if(addStory(Object.assign({claude:1},o)))n++});if(n&&typeof afterLibraryGrew==="function")afterLibraryGrew()}).catch(()=>{});
 const keys=s=>["d1","d2","d3"].filter(k=>s.depths[k]).concat("beyond");
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
