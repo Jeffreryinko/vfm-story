@@ -11,8 +11,9 @@
   var SKIP = ".vfm-sheet, .vfm-ask-back, nav, .tabs, #tpr";
   var Q = "위 내용을 처음부터 알기 쉽게 설명해 줘.\n- 배경지식이 없는 사람도 이해하게, 어려운 말은 풀어서\n- 실제 예시와 비유를 들어서\n- 왜 중요한지, 더 알아 두면 좋은 점까지";
   var css = document.createElement("style");
-  css.textContent = ".vfm-ask{display:inline-flex;align-items:center;gap:5px;margin:10px 0 2px;border:1px solid var(--ap-sep,rgba(60,60,67,.25));border-radius:999px;padding:6px 12px;background:transparent;color:var(--ap-blue,#0A6CFF);font:inherit;font-size:13px;font-weight:600;cursor:pointer}" +
-    ".vfm-ask:active{opacity:.6}.vfm-ask svg{width:14px;height:14px}" +
+  css.textContent = ".vfm-ask{display:inline-flex;align-items:center;gap:4px;margin:8px 0 0;border:0;border-radius:999px;padding:5px 10px 5px 8px;background:var(--ap-fill,rgba(120,120,128,.1));color:var(--ap-label2,#6e6e73);font:inherit;font-size:12.5px;font-weight:600;letter-spacing:-.01em;cursor:pointer;transition:background .15s,color .15s,transform .15s}" +
+    ".vfm-ask:hover{color:var(--ap-blue,#0A6CFF)}.vfm-ask:active{transform:scale(.96)}" +
+".vfm-ask svg{width:13px;height:13px;color:#D97757}" +
     ".vfm-ask-back{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;justify-content:center}" +
     ".vfm-ask-sh{width:100%;max-width:560px;max-height:88vh;overflow:auto;background:var(--ap-surface,#fff);color:var(--ap-label,#000);border-radius:18px 18px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px);box-sizing:border-box}" +
     ".vfm-ask-sh h3{margin:0 0 4px;font-size:18px}.vfm-ask-sh p{margin:0 0 10px;font-size:13px;color:var(--ap-label2,#666);line-height:1.5}" +
@@ -78,7 +79,7 @@
       if (el.querySelector(":scope > .vfm-ask") || el.closest(SKIP)) return;
       if (el.parentElement && el.parentElement.closest(SEL)) return;   // 카드 안의 작은 칸이면 바깥 카드에만 붙임
       if (el.tagName === "BUTTON" || (el.textContent || "").trim().length < 40) return;  // 단추 자체·너무 짧은 칸은 건너뜀
-      var b = document.createElement("button"); b.type = "button"; b.className = "vfm-ask"; b.innerHTML = IC + "AI에게 자세히 묻기";
+      var b = document.createElement("button"); b.type = "button"; b.className = "vfm-ask"; b.innerHTML = IC + "AI에게 묻기";
       el.appendChild(b);
     });
   }
