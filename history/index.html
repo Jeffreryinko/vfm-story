@@ -106,6 +106,8 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
 <script src="../assets/wikithumb.js"></script>
 <script src="../assets/wikigal.js"></script>
 <script src="../assets/history-player.js"></script>
+<script src="tongsa.js?v=1"></script>
+<script src="tongsa-1.js?v=1"></script>
 <script>
 "use strict";
 /* ───── 저장 (폰 브라우저). 키 vfm:history:* → 자판기 공통 내보내기에 포함 ───── */
@@ -182,7 +184,7 @@ async function renderToday() {
   const todayHtml = days.length ? `<div class="today"><p class="d">${+key.slice(0, 2)}월 ${+key.slice(3)}일의 지난 일들</p><ul>${rowsD.slice(0, 5).map(li).join("")}</ul>${days.length > 5 ? `<details><summary class="sub" style="cursor:pointer;padding:8px 0;color:var(--accent);font-weight:600">${days.length - 5}건 더 (연도순)</summary><ul>${days.map(li).join("")}</ul></details>` : ""}</div>` : '<p class="note">오늘 날짜의 기록을 아직 못 받았어요.</p>';
   const lastEp = Object.entries(S.ep).filter(([id]) => byId[id]).sort((a, b) => (b[1].at || 0) - (a[1].at || 0))[0];
   const ctx = lastEp ? byId[lastEp[0]].ctx || {} : {};
-  app.innerHTML = head("역사") + `
+  app.innerHTML = head("역사") + (window.VFM_TS ? VFM_TS.hero() : "") + `
     ${F0 ? HP.card(F0, true) : '<p class="empty">편집 이야기를 불러오지 못했어요. 아래 탐색은 그대로 쓸 수 있어요.</p>'}
     ${cont ? `<button class="cont" data-ep-open="${esc(cont[0])}"><span><small>이어서 보기 · ${esc(byId[cont[0]].title)}</small><b>${esc(cont[1].cue || "읽던 곳")}부터</b></span><span class="go">›</span></button>` : ""}
     <h2 class="sec">지금 기분은? <small>고르면 세 편을 골라 드려요</small></h2>
@@ -451,7 +453,7 @@ async function liveSections(title) {
 const navStack = [];
 function nav(h, isBack) {
   const cur = location.hash || "#today"; if (h === cur) return route();
-  if (!isBack) { if (h.startsWith("#p=") || h.startsWith("#ep=")) { navStack.push({ h: cur, y: scrollY }); if (navStack.length > 40) navStack.shift(); } else navStack.length = 0; }
+  if (!isBack) { if (h.startsWith("#p=") || h.startsWith("#ep=") || h.startsWith("#ts")) { navStack.push({ h: cur, y: scrollY }); if (navStack.length > 40) navStack.shift(); } else navStack.length = 0; }
   try { history.replaceState(history.state, "", location.pathname + location.search + h); } catch (e) { location.hash = h; return; }
   route();
 }
@@ -647,13 +649,14 @@ async function route() {
   const h = location.hash || "#today"; document.querySelector(".rbar")?.remove();
   setTimeout(() => HP.pill(), 80);                                    // 이야기에서 나왔으면 ‘돌아가기’ 단추
   if (h.startsWith("#p=")) { setTab(""); document.getElementById("tabs").hidden = true; return renderPage(decodeURIComponent(h.slice(3))); }
+  if (h.startsWith("#ts") && window.VFM_TS) { setTab(""); document.getElementById("tabs").hidden = true; S.page = null; return VFM_TS.render(h); }
   if (h.startsWith("#ep=")) { setTab(""); document.getElementById("tabs").hidden = true; S.page = null; return HP.render(decodeURIComponent(h.slice(4))); }
   document.getElementById("tabs").hidden = false; document.body.classList.remove("reading"); S.page = null;
   const v = h.slice(1).split("?")[0]; setTab(v);
   if (v === "back") setTab("series");
   if (v === "explore") renderExplore(); else if (v === "back") renderBack(); else if (v === "series") renderSeries(); else if (v === "shelf") renderShelf(); else renderToday();
 }
-window.vfmApp = { back: histBack, go: h => nav(h, true), route, top: () => nav("#today") };
+window.vfmApp = { back: histBack, go: h => nav(h, true), push: h => nav(h), route, top: () => nav("#today") };
 window.addEventListener("hashchange", route);
 document.addEventListener("click", async e => {
   const t = e.target.closest("[data-v],[data-open],[data-act],[data-f],[data-bm],[data-sm],[data-stag],[data-depth],[data-rel],[data-word],[data-goc],[data-xm],[data-se],[data-sw],[data-lc],[data-life-era],[data-goera],[data-hmood],[data-bmgo]"); if (!t) return;
