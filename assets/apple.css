@@ -141,3 +141,10 @@ html.ap body.reading .vfm-bar{display:none}
 html.ap.ap-sisa .vfm-bar{padding-left:14px;padding-right:14px}
 html.ap .toast{border-radius:14px}
 html.ap input[type="search"],html.ap input[type="text"],html.ap .search,html.ap textarea{border-radius:10px}
+
+/* ───────── 띄어쓰기(줄바꿈) — 모든 화면 공통 ─────────
+   한국어는 글자 중간이 아니라 낱말(띄어쓰기) 단위로 줄을 바꾸고,
+   문단 마지막 줄에 한두 글자만 남지 않게, 제목은 줄 길이를 고르게 맞춘다. */
+html.ap body{word-break:keep-all;overflow-wrap:anywhere}
+html.ap p,html.ap li{text-wrap:pretty}
+html.ap h1,html.ap h2,html.ap h3{text-wrap:balance}
