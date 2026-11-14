@@ -156,7 +156,7 @@ async function loadAll() {
   getJ("_index.json").then(x => { IDX = x; if ((location.hash || "").startsWith("#news") && NEWS) paint(); }).catch(() => { });
   getJ("news.json").then(x => { NEWS = x; if (/^#(today|news)?$/.test(location.hash || "") || (location.hash || "").startsWith("#news")) paint(); }).catch(() => { NEWS = { items: [] }; });
   getJ("wiki.json").then(x => { WIKI = x; }).catch(() => { WIKI = {}; });
-  getJ("stories.json").then(x => { ST = x; addExp(); const h = location.hash || ""; if (/^#(today)?$/.test(h) || h.startsWith("#st")) paint(); }).catch(() => { ST = { items: [] }; });
+  getJ("stories.json").then(x => { ST = x; addExp(); const h = location.hash || ""; if (/^(#today|#)?$/.test(h) || h.startsWith("#st")) paint(); }).catch(() => { ST = { items: [] }; });
 }
 function hasAtom(r, key) { const base = key.split(":")[0]; return r.atoms.some(s => s.includes(":") ? s === key : s === base); }
 function atomsOf(id) { const r = R[id]; return r ? A.atoms.filter(k => hasAtom(r, k)) : []; }
@@ -214,8 +214,9 @@ function renderToday() {
   const due = dueIds(), nw = newIds(), st = streak();
   let h = head("뇌", `외운 부위 ${learned()}/${RL.length} · ${st ? "연속 " + st + "일" : "오늘 시작해 볼까요"}`, '<button class="ib" data-act="find" aria-label="부위 찾기">⌕</button>');
   if (!LS.g("helpSeen", 0)) h += `<div class="help"><b>이 탭은</b> 뇌 부위 이름 52개를 그림으로 외우는 곳이에요. 하루 새 부위 ${S.per}개 + 복습. 맞히면 복습 간격이 1→2→4→7→15일로 늘고, 틀리면 다시 내일.<br>아래 <b>소식</b>은 로봇이 하루 2번 모은 뇌과학 기사예요 — 기사에 나온 부위를 누르면 지도에서 보여 줘요. <button class="btn sm" data-act="helpok" style="margin-top:6px">알겠어요</button></div>`;
+  h += storySection();
   const total = due.length + nw.length;
-  h += `<div class="box"><p class="note" style="margin:0">오늘 할 것</p>`;
+  h += `<div class="box"><p class="note" style="margin:0">오늘 할 것 · 부위 외우기</p>`;
   if (total) {
     h += `<p class="big">${nw.length ? `새 부위 ${nw.length}개` : ""}${nw.length && due.length ? " + " : ""}${due.length ? `복습 ${due.length}개` : ""}</p>`;
     if (nw.length) h += `<div style="margin:4px 0 8px">${nw.map(id => `<button class="rc" data-r="${id}">${esc(R[id].ko)}</button>`).join("")}</div>`;
@@ -228,14 +229,13 @@ function renderToday() {
   const show = nw.length ? nw : due.slice(0, 5);
   if (show.length) { const v = bestView(show[0]); h += `<div class="mini">${mapSvg(v, { hl: atomsOf(show[0]), hl2: show.slice(1).flatMap(atomsOf), capx: R[show[0]].ko + (show.length > 1 ? " 외 " + (show.length - 1) + "곳 (노랑)" : "") })}</div>`; }
   h += `<button class="btn wide t3go" data-go="#3d${show.length ? "=" + show[0] : ""}">🧠 3D로 돌려 보기 ›</button>`;
-  h += storySection();
   h += boardBox(true);
   h += newsSection(8);
   return h;
 }
 
 let EXPAI = null;                                          // 로봇(Claude API)이 쓴 카드 — 시사 자판기 저장소 data/brain/exp_ai.json
-fetch("/vendingForMe/data/brain/exp_ai.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.items) { EXPAI = j.items.map(c => Object.assign({ api: 1 }, c)); if (ST) { addExp(); const h = location.hash || ""; if (/^#(today)?$/.test(h) || h.startsWith("#st")) paint(); } } }).catch(() => {});
+fetch("/vendingForMe/data/brain/exp_ai.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.items) { EXPAI = j.items.map(c => Object.assign({ api: 1 }, c)); if (ST) { addExp(); const h = location.hash || ""; if (/^(#today|#)?$/.test(h) || h.startsWith("#st")) paint(); } } }).catch(() => {});
 function addExp() {                                       // Claude가 쓴 '유명한 실험·사례' (brain/exp.js + 로봇 카드)
   const E = (window.BRAIN_EXP || []).concat(EXPAI || []); if (!ST || !E.length) return; ST.items = ST.items || [];
   const have = new Set(ST.items.map(c => c.id)), n0 = ST.items.length;
@@ -259,9 +259,13 @@ function storyCard(c) {
 function storySection() {
   if (!ST) return "";
   const l = ST.items || []; if (!l.length) return "";
-  const c = todayStory(), nr = l.filter(x => S.sread[x.id]).length;
-  return `<h2 class="sec">실험·사례·이야기<small>읽음 ${nr}/${l.length}</small><button data-go="#st">전부 ›</button></h2>` +
-    `<p class="note" style="margin-top:-4px">유명한 뇌·심리 실험과 사례, 《생각의 탄생》·《ADHD 2.0》의 인물 일화. 하루 한 장씩 바뀌어요.</p>` + (c ? storyCard(c) : "");
+  const ex = l.filter(x => /^유명한/.test(x.book)), pool = ex.length ? ex : l, nr = l.filter(x => S.sread[x.id]).length;
+  const k = DAY() * 7 % pool.length, pick = [];
+  for (let i = 0; i < pool.length && pick.length < 3; i++) { const c = pool[(k + i * 37) % pool.length]; if (!S.sread[c.id] && !pick.includes(c)) pick.push(c); }
+  const tops = [...new Set(ex.map(c => c.ch))];
+  return `<h2 class="sec">오늘의 실험·사례<small>읽음 ${nr}/${l.length}</small><button data-go="#st">전부 ›</button></h2>` +
+    pick.map(storyCard).join("") +
+    (tops.length ? `<div class="chips" style="margin:6px 0 14px">${tops.slice(0, 18).map(t => `<button data-go="#st" data-sf="ch:${esc(t)}">${esc(t)}</button>`).join("")}</div>` : "");
 }
 function storyList(f) {
   let l = (ST && ST.items) || [];
@@ -737,7 +741,7 @@ document.addEventListener("click", async e => {
     return tapAtom(d.a, t.closest(".mapw").dataset.view);
   }
   if (d.v) { closeSheet(); SES = null; return nav("#" + d.v); }
-  if (d.go) { closeSheet(); return nav(d.go); }
+  if (d.go) { closeSheet(); if (d.sf != null) S.sf = d.sf; return nav(d.go); }
   if (d.r) { e.stopPropagation(); closeSheet(); return nav("#r=" + d.r); }
   if (d.n) return openNews(d.n);
   if (d.st) { closeSheet(); return openStory(d.st); }
