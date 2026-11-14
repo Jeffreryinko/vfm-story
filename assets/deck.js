@@ -157,6 +157,7 @@
       var nx = this.queue.filter(function (x) { return !used[x] && !self.seen(x); })[0];
       if (!nx) { this.pos = this.hist.length; this.save(); return true; }   // 끝 카드
       this.hist.push(nx); this.pos++;
+      try { window.vfm && window.vfm.tick && window.vfm.tick("card", true); } catch (e) { }   // 새 카드 한 장 (assets/joy.js)
     }
     this.save(); return true;
   };
@@ -240,7 +241,7 @@
     if (old) old.replaceWith(card); else host.appendChild(card);
     if (dir) { card.classList.add(dir > 0 ? "in-r" : "in-l"); requestAnimationFrame(function () { requestAnimationFrame(function () { card.classList.remove("in-r", "in-l"); }); }); }
     var top = host.getBoundingClientRect().top;
-    if (top < 0 || top > window.innerHeight * 0.6) window.scrollTo({ top: Math.max(0, window.scrollY + top - 8), behavior: dir ? "auto" : "smooth" });
+    if (dir && (top < 0 || top > window.innerHeight * 0.6)) window.scrollTo({ top: Math.max(0, window.scrollY + top - 8), behavior: dir ? "auto" : "smooth" });
     this.armDwell(); this.warm();
     if (this.o.onShow) { var k = this.curKey(); if (k && this.map[k]) try { this.o.onShow(this.map[k]); } catch (e) { } }
   };
