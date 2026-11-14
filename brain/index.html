@@ -109,7 +109,7 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
   <button data-v="learn"><b>❏</b>외우기</button>
   <button data-v="shelf"><b>☆</b>보관함</button>
 </nav>
-<script src="exp.js?v=1"></script>
+<script src="exp.js?v=2"></script><script src="exp-2.js?v=1"></script>
 <script>
 "use strict";
 /* ───── 상태 (폰 브라우저에 저장 · 구글 로그인하면 기기끼리 맞춤) ───── */
@@ -266,22 +266,25 @@ function storyList(f) {
   if (f === "unread") l = l.filter(c => !S.sread[c.id]);
   else if (f === "star") l = l.filter(c => S.sstar[c.id]);
   else if (f === "rs") l = l.filter(c => (c.rs || []).length);
+  else if (f && f.startsWith("ch:")) l = l.filter(c => c.ch === f.slice(3) && /^유명한/.test(c.book));
   else if (f) l = l.filter(c => c.book === f);
   return l;
 }
 function storyDeckCard(c) {
   return `<div class="vdk-body"><div class="vdk-k"><span class="bd src">${esc(c.book)}</span><span>${esc(c.ch)}</span><span>No.${c.n}</span></div>
     <h2 class="vdk-t">${esc(c.title)}</h2>${c.who ? `<p class="vdk-note" style="margin:-6px 0 10px">${esc(c.who)}${c.field ? " · " + esc(c.field) : ""}</p>` : ""}
-    ${paras(c.story).map(x => `<p class="vdk-p">${/^요즘 평가:/.test(x) ? `<b>요즘 평가</b> ${esc(x.replace(/^요즘 평가:\s*/, ""))}` : esc(x)}</p>`).join("")}<p class="vdk-h">핵심 통찰</p><p class="vdk-p">${esc(c.insight)}</p>
+    ${paras(c.story).map(x => `<p class="vdk-p">${/^요즘 평가:/.test(x) ? `<b>요즘 평가</b> ${esc(x.replace(/^요즘 평가:\s*/, ""))}` : esc(x)}</p>`).join("")}<p class="vdk-h">핵심 통찰</p><p class="vdk-p">${esc(c.insight)}</p>${c.ref ? `<p class="vdk-note">📄 ${esc(c.ref)}</p>` : ""}
     ${(c.rs || []).length ? `<p class="vdk-note">나온 부위: ${c.rs.filter(r => R[r]).map(r => `<button type="button" class="rc" data-r="${r}">${esc(R[r].ko)}</button>`).join("")}</p>` : ""}
     <button type="button" class="vdk-more" data-st="${c.id}">별표 · 메모 ›</button></div>`;
 }
 function renderStories() {
   const l0 = (ST && ST.items) || [];
-  let h = `<div class="top"><button class="ib" data-act="back" aria-label="뒤로">‹</button></div>` + head("생각·주의력 이야기", `${l0.length}장 · 읽음 ${l0.filter(c => S.sread[c.id]).length} · 별표 ${Object.keys(S.sstar).length}`);
+  let h = `<div class="top"><button class="ib" data-act="back" aria-label="뒤로">‹</button></div>` + head("실험·사례·이야기", `${l0.length}장 · 읽음 ${l0.filter(c => S.sread[c.id]).length} · 별표 ${Object.keys(S.sstar).length}`);
   if (!ST) return h + '<p class="note">불러오는 중…</p>';
   const F = [["", "전체"], ["유명한 실험", "🔬 유명한 실험"], ["유명한 사례", "🧠 유명한 사례"], ["생각의 탄생", "생각의 탄생"], ["ADHD 2.0 · 뇌과학", "ADHD 2.0 · 뇌과학"], ["unread", "안 읽은 것"], ["star", "별표"], ["rs", "뇌 부위 나온 것"]];
   h += `<div class="chips">${F.map(([k, n]) => `<button data-sf="${k}" class="${S.sf === k ? "on" : ""}">${n}<small>${storyList(k).length}</small></button>`).join("")}</div>`;
+  const TOP = [...new Set(l0.filter(c => /^유명한/.test(c.book)).map(c => c.ch))];
+  if (TOP.length) h += `<p class="note" style="margin:6px 0 4px">실험·사례를 주제로</p><div class="chips">${TOP.map(t => `<button data-sf="ch:${esc(t)}" class="${S.sf === "ch:" + t ? "on" : ""}">${esc(t)}<small>${storyList("ch:" + t).length}</small></button>`).join("")}</div>`;
   if (D) h += D.modeSwitch("brain-st", () => paint());
   const l = storyList(S.sf);
   if (D && D.mode("brain-st") === "deck") return h + D.create({ id: "brain-st-" + (S.sf || "all"), app: "brain", emptyTitle: "다 읽었어요",
@@ -301,7 +304,7 @@ function openStory(id) {
     <h3>${esc(c.title)}</h3>${c.who ? `<p class="note">${esc(c.who)}${c.field ? " · " + esc(c.field) : ""}</p>` : ""}
     ${r0 ? `<div class="mini">${mapSvg(bestView(r0), { hl: atomsOf(r0), hl2: c.rs.slice(1).filter(r => R[r]).flatMap(atomsOf), capx: R[r0].ko })}</div>` : ""}
     <div class="wiki" style="white-space:normal">${paras(c.story).map(x => `<p style="margin:0 0 10px">${/^요즘 평가:/.test(x) ? `<b>요즘 평가</b> ${esc(x.replace(/^요즘 평가:\s*/, ""))}` : esc(x)}</p>`).join("")}</div>
-    <div class="origin" style="margin-top:10px"><b>핵심 통찰</b> ${esc(c.insight)}</div>
+    <div class="origin" style="margin-top:10px"><b>핵심 통찰</b> ${esc(c.insight)}</div>${c.ref ? `<p class="note" style="margin-top:8px">📄 논문 · ${esc(c.ref)}</p>` : ""}
     ${(c.rs || []).length ? `<p class="note" style="margin-top:8px">나온 부위 (누르면 설명)</p><div>${c.rs.filter(r => R[r]).map(r => `<button class="rc" data-r="${r}">${esc(R[r].ko)}</button>`).join("")}</div>` : ""}
     <div class="row2" style="margin:10px 0"><button class="btn" data-act="sstar">${S.sstar[id] ? "★ 별표 해제" : "☆ 별표"}</button><button class="btn" data-act="sthink">✎ 생각</button><button class="btn" data-act="sshare">공유</button></div>
     <p class="note">내 메모</p><textarea id="memo" placeholder="이 이야기에서 기억할 것">${esc(S.memo["s:" + id] || "")}</textarea></div>`;
