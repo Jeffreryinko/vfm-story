@@ -50,7 +50,7 @@
     "sisa-learn": ["🌏", "세상 읽기 교실", "/vendingForMe/sisa/learn/"], "deal-learn": ["💼", "딜 교실", "/vendingForMe/deal/learn/"],
     "ai-learn": ["🎓", "AI 교실", "/vendingForMe/ai/learn/"], "gicho-learn": ["📘", "기초 교실", "/vendingForMe/gicho/"],
     "iyagi": ["📖", "이야기", "/vfm-story/iyagi/"], "history": ["🏛️", "세계사", "/vfm-story/history/#ts"], "brain": ["🧠", "뇌 실험·사례", "/vfm-story/brain/#st"],
-    "book": ["📚", "책", "/vfm-story/book/"], "mental": ["🎩", "멘탈", "/vfm-mind/mental/"], "baedat": ["💬", "배댓", "/vfm-mind/baedat/"]
+    "book": ["📚", "책", "/vfm-story/book/"], "tools": ["🧰", "도구", "/vendingForMe/tools/"], "mental": ["🎩", "멘탈", "/vfm-mind/mental/"], "baedat": ["💬", "배댓", "/vfm-mind/baedat/"]
   };
   V.trailApps = APPS;
   var esc = function (x) { return String(x == null ? "" : x).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
