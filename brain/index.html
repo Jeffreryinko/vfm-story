@@ -234,8 +234,10 @@ function renderToday() {
   return h;
 }
 
-function addExp() {                                       // Claude가 쓴 '유명한 실험·사례' (brain/exp.js)
-  const E = window.BRAIN_EXP || []; if (!ST || !E.length) return; ST.items = ST.items || [];
+let EXPAI = null;                                          // 로봇(Claude API)이 쓴 카드 — 시사 자판기 저장소 data/brain/exp_ai.json
+fetch("/vendingForMe/data/brain/exp_ai.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => { if (j && j.items) { EXPAI = j.items.map(c => Object.assign({ api: 1 }, c)); if (ST) { addExp(); const h = location.hash || ""; if (/^#(today)?$/.test(h) || h.startsWith("#st")) paint(); } } }).catch(() => {});
+function addExp() {                                       // Claude가 쓴 '유명한 실험·사례' (brain/exp.js + 로봇 카드)
+  const E = (window.BRAIN_EXP || []).concat(EXPAI || []); if (!ST || !E.length) return; ST.items = ST.items || [];
   const have = new Set(ST.items.map(c => c.id)), n0 = ST.items.length;
   E.forEach((c, i) => { if (!have.has(c.id)) ST.items.push(Object.assign({ n: n0 + i + 1, ext: false }, c)); });
 }
@@ -304,7 +306,7 @@ function openStory(id) {
     <h3>${esc(c.title)}</h3>${c.who ? `<p class="note">${esc(c.who)}${c.field ? " · " + esc(c.field) : ""}</p>` : ""}
     ${r0 ? `<div class="mini">${mapSvg(bestView(r0), { hl: atomsOf(r0), hl2: c.rs.slice(1).filter(r => R[r]).flatMap(atomsOf), capx: R[r0].ko })}</div>` : ""}
     <div class="wiki" style="white-space:normal">${paras(c.story).map(x => `<p style="margin:0 0 10px">${/^요즘 평가:/.test(x) ? `<b>요즘 평가</b> ${esc(x.replace(/^요즘 평가:\s*/, ""))}` : esc(x)}</p>`).join("")}</div>
-    <div class="origin" style="margin-top:10px"><b>핵심 통찰</b> ${esc(c.insight)}</div>${c.ref ? `<p class="note" style="margin-top:8px">📄 논문 · ${esc(c.ref)}</p>` : ""}
+    <div class="origin" style="margin-top:10px"><b>핵심 통찰</b> ${esc(c.insight)}</div>${c.ref ? `<p class="note" style="margin-top:8px">📄 논문 · ${esc(c.ref)}</p>` : ""}${c.api ? `<p class="note">✦ Claude가 위키백과${c.wiki ? `(<a href="https://en.wikipedia.org/wiki/${encodeURIComponent(c.wiki)}" target="_blank" rel="noopener">${esc(c.wiki)}</a>)` : ""}를 바탕으로 쓴 카드예요. 숫자는 원문으로 확인해 보세요.</p>` : ""}
     ${(c.rs || []).length ? `<p class="note" style="margin-top:8px">나온 부위 (누르면 설명)</p><div>${c.rs.filter(r => R[r]).map(r => `<button class="rc" data-r="${r}">${esc(R[r].ko)}</button>`).join("")}</div>` : ""}
     <div class="row2" style="margin:10px 0"><button class="btn" data-act="sstar">${S.sstar[id] ? "★ 별표 해제" : "☆ 별표"}</button><button class="btn" data-act="sthink">✎ 생각</button><button class="btn" data-act="sshare">공유</button></div>
     <p class="note">내 메모</p><textarea id="memo" placeholder="이 이야기에서 기억할 것">${esc(S.memo["s:" + id] || "")}</textarea></div>`;
