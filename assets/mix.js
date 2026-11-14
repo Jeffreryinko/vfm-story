@@ -445,6 +445,14 @@
     return out;
   }
   var NAMES = [].concat.apply([], KINDS.map(function (k) { return k[1].split(" ")[0].split("·"); })).filter(function (x, i, a) { return a.indexOf(x) === i; }).join("·");
+  var NOTE0 = "옆으로 밀면 다음 · 본 건 다시 안 나와요";
+  function paintJoy() {
+    var el = document.getElementById("mxJoy"), V = window.vfm; if (!el || !V || !V.joyToday) return;
+    var t = V.joyToday(), n = t.card || 0, sk = V.joyStreak(), M = [5, 10, 20, 30, 50, 75, 100], nx = M.filter(function (m) { return m > n; })[0] || n + 25, pv = M.filter(function (m) { return m <= n; }).pop() || 0;
+    if (!n && !sk) { el.innerHTML = '<small>오늘 첫 장을 넘겨 볼까요?</small>'; return; }
+    el.innerHTML = (sk ? '<span class="f">🔥 ' + sk + '일</span>' : "") + "<span>오늘 " + n + "장</span>" + '<span class="bar"><i style="width:' + Math.round((n - pv) / (nx - pv) * 100) + '%"></i></span><small>' + nx + "장까지 " + (nx - n) + "</small>";
+  }
+  document.addEventListener("vfm:joy", paintJoy); window.addEventListener("load", paintJoy); setTimeout(paintJoy, 900);
   NAMES += (function (c) { c = c.charCodeAt(0) - 0xAC00; return c >= 0 && c < 11172 && c % 28 ? "을" : "를"; })(NAMES.slice(-1));
   var deck = D.create({ id: "mix-home", app: "mix", emptyTitle: "불러오는 중이에요", emptyNote: "잠시만요. " + NAMES + " 모으고 있어요.", items: mixed,
     onShow: more });
@@ -458,8 +466,9 @@
     }).join("") + '<button type="button" class="mx-reset" data-mxw="reset">처음 비율로</button></div>';
   }
   host.innerHTML = '<div class="mx-top"><input id="mxq" type="search" placeholder="전부에서 찾기 (예: ' + (HAS.sisa ? "트럼프, 엔비디아" : HAS.story ? "임진왜란, 해마" : "웃긴, 콜드리딩") + ')" aria-label="한 번에 찾기"><button type="button" id="mxRatioBtn" aria-label="섞는 비율">비율</button></div>' +
-    ratioHtml() + '<p class="mx-note" id="mxNote">' + NAMES + ' 섞어서 한 장씩 · 옆으로 밀면 다음 · 본 것은 다시 안 나와요</p><div id="mxDeck">' + deck.html() + "</div>";
-  var q = document.getElementById("mxq"), qT = null, HT = null, htP = null, NOTE0 = NAMES + " 섞어서 한 장씩 · 옆으로 밀면 다음 · 본 것은 다시 안 나와요";
+    ratioHtml() + '<div class="mx-joy" id="mxJoy"></div><p class="mx-note" id="mxNote">' + NOTE0 + '</p><div id="mxDeck">' + deck.html() + "</div>";
+  setTimeout(paintJoy, 0);
+  var q = document.getElementById("mxq"), qT = null, HT = null, htP = null;
   // 역사 8만 편 제목 전부 (첫 찾기 때 한 번만 받음, 약 1MB)
   function histTitles() {
     if (!HAS.story) { HT = []; return Promise.resolve(HT); }
@@ -518,7 +527,9 @@
   var css = document.createElement("style");
   css.textContent = ".mx-top{display:flex;gap:8px;margin:0 0 8px}.mx-top input{flex:1;min-width:0;border:0;border-radius:12px;padding:11px 14px;font:inherit;font-size:16px;background:var(--ap-fill);color:var(--ap-label)}" +
     ".mx-top button{flex:none;border:0;border-radius:12px;padding:0 14px;font:inherit;font-weight:600;background:var(--ap-fill);color:var(--ap-label)}" +
-    ".mx-note{margin:0 4px 4px;font-size:12.5px;color:var(--ap-label2)}" +
+    ".mx-note{margin:0 4px 4px;font-size:12.5px;color:var(--ap-label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+    ".mx-joy{display:flex;align-items:center;gap:10px;margin:2px 4px 8px;font-size:13px;font-weight:600;color:var(--ap-label);font-variant-numeric:tabular-nums}.mx-joy:empty{display:none}" +
+    ".mx-joy .f{color:#FF9F0A}.mx-joy .bar{flex:1;height:6px;border-radius:3px;background:var(--ap-fill,rgba(120,120,128,.14));overflow:hidden}.mx-joy .bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#FF9F0A,#FF375F);transition:width .5s cubic-bezier(.2,1,.3,1)}.mx-joy small{font-weight:500;color:var(--ap-label2);font-size:12px}" +
     ".mx-ratio{background:var(--ap-surface);border-radius:14px;padding:12px;margin:0 0 10px}.mx-rh{margin:0 0 8px;font-weight:700}.mx-rh small{font-weight:400;color:var(--ap-label2);font-size:12px;display:block}" +
     ".mx-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:.5px solid var(--ap-sep);font-size:14px}.mx-row:first-of-type{border-top:0}" +
     ".mx-seg{display:flex;gap:2px;background:var(--ap-fill);border-radius:9px;padding:2px;flex:none}.mx-seg button{border:0;border-radius:7px;padding:6px 8px;font:inherit;font-size:12.5px;background:none;color:var(--ap-label)}.mx-seg button[aria-pressed=true]{background:var(--ap-seg-on);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.12)}" +
