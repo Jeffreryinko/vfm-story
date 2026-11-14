@@ -7,7 +7,7 @@
   "use strict";
   if (window.__vfmAsk) return; window.__vfmAsk = 1;
   // 카드로 볼 모양들 — 겹쳐 있으면 가장 바깥 카드에 하나만 붙여요
-  var SEL = [".vdk-body", ".lc", ".brf-it", ".brf-hero", ".dbf-it", ".dbf-hero", ".aib details", ".ts-art", ".tp-card", ".sheet", "article.card", ".card.acc", ".dp .lg", ".ev.op .evb", ".nwbox", "div.card", "div.box", "section.block", ".epc"].join(",");
+  var SEL = [".vdk-body", ".lc", ".brf-it", ".brf-hero", ".dbf-it", ".dbf-hero", ".aib details", ".ts-art", ".tp-card", ".sheet", "article.card", ".card.acc", ".dp .lg", ".ev.op .evb", ".nwbox", "div.card", "div.box", "section.block", ".epc", "article.rcard", ".ev.op", ".mx-card"].join(",");
   var SKIP = ".vfm-sheet, .vfm-ask-back, nav, .tabs, #tpr";
   var Q = "위 내용을 처음부터 알기 쉽게 설명해 줘.\n- 배경지식이 없는 사람도 이해하게, 어려운 말은 풀어서\n- 실제 예시와 비유를 들어서\n- 왜 중요한지, 더 알아 두면 좋은 점까지";
   var css = document.createElement("style");
