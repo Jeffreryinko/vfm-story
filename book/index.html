@@ -374,7 +374,7 @@ async function renderBook(id) {
   let d;
   try { d = await detail(id); } catch (e) { d = null; }
   if (!d) return `<div class="top"><button class="ib" data-act="back">‹</button></div><p class="empty">책 정보를 못 불러왔어요</p>`;
-  S.seen[id] = 1; save("seen");
+  S.seen[id] = 1; save("seen"); try{(window.vfm&&vfm.trail?vfm.trail:function(o){(window.__vfmTQ=window.__vfmTQ||[]).push(o)})({ id, app: "book", kind: "book", t: "책 · " + d.t + (d.a ? " (" + d.a + ")" : ""), u: location.pathname + "#b=" + id })}catch(e){};
   const b = byId(id) || { id, t: d.t, a: d.a, cv: d.cv, cv2: d.cv2, r: (d.shorts || []).length, s: [] };
   const my = S.star[id] || {};
   const m = SRCMAP();

@@ -294,7 +294,7 @@ function renderStories() {
 }
 function openStory(id) {
   const c = ((ST && ST.items) || []).find(x => x.id === id); if (!c) return;
-  S.sread[id] = 1; save("sread");
+  S.sread[id] = 1; save("sread"); try{(window.vfm&&vfm.trail?vfm.trail:function(o){(window.__vfmTQ=window.__vfmTQ||[]).push(o)})({ id: c.id, app: "brain", kind: c.book === "유명한 실험" || c.book === "유명한 사례" ? "case" : "story", t: c.title, u: location.pathname + "#st=" + c.id })}catch(e){};
   const r0 = (c.rs || []).find(r => R[r]);
   const back = document.createElement("div"); back.className = "back"; back.dataset.s = id;
   back.innerHTML = `<div class="sheet" role="dialog"><div class="grab"></div><div class="meta" style="margin-bottom:6px"><span class="bd src">${esc(c.book)}</span><span>${esc(c.ch)}</span><span>No.${c.n}</span></div>

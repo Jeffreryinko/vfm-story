@@ -51,7 +51,7 @@
     },
     chapter(id) {
       const i = CH.findIndex(c => c.id === id), c = CH[i]; if (!c) return this.list();
-      R[c.id] = Date.now(); LSS("ts", R);
+      R[c.id] = Date.now(); LSS("ts", R); try{(window.vfm&&vfm.trail?vfm.trail:function(o){(window.__vfmTQ=window.__vfmTQ||[]).push(o)})({ id: c.id, app: "history", kind: "chapter", t: "세계사 " + c.n + "장 · " + c.t, u: location.pathname + "#ts=" + c.id })}catch(e){};
       const secs = DEP === "short" ? [] : DEP === "mid" ? c.secs.slice(0, 3) : c.secs;
       const pv = CH[i - 1], nx = CH[i + 1];
       return `<div class="ts-art"><p class="k">세계사 한 줄로 · ${c.n}장 · ${ERA(c.n)}</p><h1>${e(c.t)}</h1><p class="y">${e(c.yrs)}</p>

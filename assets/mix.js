@@ -452,6 +452,8 @@
     if (!n && !sk) { el.innerHTML = '<small>오늘 첫 장을 넘겨 볼까요?</small>'; return; }
     el.innerHTML = (sk ? '<span class="f">🔥 ' + sk + '일</span>' : "") + "<span>오늘 " + n + "장</span>" + '<span class="bar"><i style="width:' + Math.round((n - pv) / (nx - pv) * 100) + '%"></i></span><small>' + nx + "장까지 " + (nx - n) + "</small>";
   }
+  function paintTrail() { var el = document.getElementById("mxTrail"); if (el && window.vfm && vfm.trailStrip) el.innerHTML = vfm.trailStrip(); }
+  document.addEventListener("vfm:trailready", paintTrail); window.addEventListener("pageshow", paintTrail); setTimeout(paintTrail, 900);
   document.addEventListener("vfm:joy", paintJoy); window.addEventListener("load", paintJoy); setTimeout(paintJoy, 900);
   NAMES += (function (c) { c = c.charCodeAt(0) - 0xAC00; return c >= 0 && c < 11172 && c % 28 ? "을" : "를"; })(NAMES.slice(-1));
   var deck = D.create({ id: "mix-home", app: "mix", emptyTitle: "불러오는 중이에요", emptyNote: "잠시만요. " + NAMES + " 모으고 있어요.", items: mixed,
@@ -466,7 +468,7 @@
     }).join("") + '<button type="button" class="mx-reset" data-mxw="reset">처음 비율로</button></div>';
   }
   host.innerHTML = '<div class="mx-top"><input id="mxq" type="search" placeholder="전부에서 찾기 (예: ' + (HAS.sisa ? "트럼프, 엔비디아" : HAS.story ? "임진왜란, 해마" : "웃긴, 콜드리딩") + ')" aria-label="한 번에 찾기"><button type="button" id="mxRatioBtn" aria-label="섞는 비율">비율</button></div>' +
-    ratioHtml() + '<div class="mx-joy" id="mxJoy"></div><p class="mx-note" id="mxNote">' + NOTE0 + '</p><div id="mxDeck">' + deck.html() + "</div>";
+    ratioHtml() + '<div class="mx-joy" id="mxJoy"></div><div id="mxTrail"></div><p class="mx-note" id="mxNote">' + NOTE0 + '</p><div id="mxDeck">' + deck.html() + "</div>";
   setTimeout(paintJoy, 0);
   var q = document.getElementById("mxq"), qT = null, HT = null, htP = null;
   // 역사 8만 편 제목 전부 (첫 찾기 때 한 번만 받음, 약 1MB)

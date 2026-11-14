@@ -244,6 +244,8 @@
     if (dir && (top < 0 || top > window.innerHeight * 0.6)) window.scrollTo({ top: Math.max(0, window.scrollY + top - 8), behavior: dir ? "auto" : "smooth" });
     this.armDwell(); this.warm();
     if (this.o.onShow) { var k = this.curKey(); if (k && this.map[k]) try { this.o.onShow(this.map[k]); } catch (e) { } }
+    var k2 = this.curKey(), it = k2 && this.map[k2];                                     // 배운 길(trail.js)에 알림
+    if (it) try { document.dispatchEvent(new CustomEvent("vfm:deckshow", { detail: { key: k2, title: it.title, url: it.url, app: it.sa || this.app } })); } catch (e) { }
   };
   // 한 카드를 4초 넘게 보고 있으면 본 것으로 (앱을 껐다 켜도 다시 안 나오게. 보던 카드는 cur 로 남아 그대로 보임)
   Deck.prototype.armDwell = function () {

@@ -2964,7 +2964,7 @@ try{const ex=JSON.parse(localStorage.getItem(EKEY)||"{}");Object.keys(ex).forEac
 function renderRead(){
   const s=byId[ui.id];const ks=keys(s);if(!ks.includes(ui.depth))ui.depth="d1";
   const k=ui.depth,L=lvl(s.id);
-  store.last={id:s.id,depth:k,at:Date.now()};persist();
+  store.last={id:s.id,depth:k,at:Date.now()};persist();try{(window.vfm&&vfm.trail?vfm.trail:function(o){(window.__vfmTQ=window.__vfmTQ||[]).push(o)})({id:s.id,app:"iyagi",kind:"story",t:s.title+(s.orig?" · "+s.orig:""),u:location.pathname+"#read-"+s.id,kw:(s.tags||[]).slice(0,4)})}catch(e){};
   const tabs=ks.map(x=>`<button role="tab" aria-selected="${x===k}" data-act="open" data-id="${s.id}" data-d="${x}"><span class="stack">${"<i></i>".repeat(DM[x].n)}</span>${DM[x].name}<small>${x==="beyond"?"원하는 만큼":"약 "+s.depths[x].min+"분"}${L>=lvOf(x)?" · 읽음":""}</small></button>`).join("");
   const target=ks.find(x=>lvOf(x)>L);
   const resume=(L>=1&&k==="d1"&&target)?`<div class="resume"><span>이 이야기는 ${LV_SENT[L]}까지 보셨습니다. 이번에는 조금 더 들어가 볼까요?</span><button class="link" data-act="open" data-id="${s.id}" data-d="${target}">${DM[target].name}</button></div>`:"";
