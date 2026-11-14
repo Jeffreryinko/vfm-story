@@ -79,6 +79,7 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
 /* 책 화면 */
 .bhead{display:flex;gap:16px;align-items:flex-start;margin:10px 0 6px}.bhead .cv{width:118px;flex:none}
 .bt{font:800 24px/1.25 var(--ap-display);letter-spacing:-.03em;margin:0 0 4px}.ba{font-size:14.5px;margin:0 0 2px}.bs{font-size:12.5px;color:var(--muted);margin:0}
+.theme{margin:6px 0 16px}.tht{margin:0;font-weight:700;font-size:15.5px;letter-spacing:-.01em}.thd{margin:2px 0 8px;font-size:13px;color:var(--muted)}.deep{margin:16px 0;padding:16px;border-radius:16px;background:var(--surface,#fff);box-shadow:inset 0 0 0 .5px var(--line,rgba(0,0,0,.1))}.deep p{margin:0 0 10px;font-size:15.5px;line-height:1.72;word-break:keep-all}.deep .dk{font-size:12.5px;font-weight:700;color:var(--accent);margin-bottom:4px}.deep .done{font-size:17px;font-weight:700;line-height:1.5;letter-spacing:-.01em}.deep .dh{font-size:13px;font-weight:700;color:var(--muted);margin:14px 0 4px}.deep ul{margin:0 0 8px;padding-left:20px;font-size:15px;line-height:1.65}.deep .dn{font-size:12px;color:var(--muted);margin:10px 0 0}
 .kv{margin:14px 0}.kv h4{margin:0 0 6px;font-size:13px;color:var(--accent);display:flex;justify-content:space-between}.kv h4 button{background:none;border:0;color:var(--accent);font-size:12.5px;padding:0}
 .txt{background:var(--surface);border-radius:12px;padding:12px 14px;font-size:calc(14.5px*var(--fs));white-space:pre-line;line-height:1.7}
 .toc{background:var(--surface);border-radius:12px;padding:6px 6px;margin:0}
@@ -109,6 +110,7 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
   <button data-v="school"><b>🏛</b>학교별</button>
   <button data-v="shelf"><b>☆</b>보관함</button>
 </nav>
+<script src="deep.js?v=1"></script>
 <script>
 "use strict";
 /* ───── 상태 (폰 브라우저에 저장 · 구글 로그인하면 기기끼리 맞춤) ─────
@@ -225,12 +227,28 @@ function renderToday() {
   h += !pick.length ? `<p class="empty">${dk === "want" ? "책 화면에서 '읽고 싶음'을 누르면 여기 카드로 모여요" : "맞는 책이 없어요"}</p>`
     : isDeck() ? makeDeck("book-" + dk + (dk === "today" ? "-" + DAY() : ""), () => pick, "이 카드를 다 봤어요 — 위에서 다른 카드를 골라 보세요").html()
     : `<div class="hrow">${pick.slice(0, 30).map(b => bk(b)).join("")}</div>`;
+  h += themesHtml();
   h += `<h2 class="sec">가장 많이 추천된 책<button data-go="#find">전부 ›</button></h2>${viewSwitch()}${books(TOP.slice(0, 30), { num: 1 })}`;
   const fresh = TOP.filter(b => b.new && b.new >= new Date(Date.now() - 7 * 864e5 + 9 * 3600e3).toISOString().slice(0, 10)).slice(0, 12);
   if (fresh.length) h += `<h2 class="sec">새로 들어온 책</h2><div class="hrow">${fresh.map(b => bk(b)).join("")}</div>`;
   h += `<h2 class="sec">분야로 보기</h2><div class="chips wrapc">${(IDX.fieldOrder || []).filter(f => IDX.fields[f]).map(f => `<button data-ff="f:${esc(f)}">${esc(f)}<small>${IDX.fields[f]}</small></button>`).join("")}</div>`;
   h += `<h2 class="sec">학교별로 보기<button data-v="school">전부 ›</button></h2><div class="chips wrapc">${univs().map(u => `<button data-go="#sc=${encodeURIComponent(u)}">${esc(u)}</button>`).join("")}</div>`;
   return h;
+}
+function themesHtml() {                                  // Claude가 고른 주제별 목록 (book/deep.js)
+  const T = (window.BOOK_DEEP || {}).themes || []; if (!T.length || !TOP) return "";
+  const by = {}; TOP.forEach(b => by[b.id] = b); if (ALL) ALL.forEach(b => by[b.id] = by[b.id] || b);
+  return `<h2 class="sec">주제별로 골라 읽기<small>Claude가 고른 길</small></h2>` + T.map(t => {
+    const bs = t.ids.map(i => by[i]).filter(Boolean); if (!bs.length) return "";
+    return `<div class="theme"><p class="tht">${esc(t.t)}</p><p class="thd">${esc(t.d)}</p><div class="hrow">${bs.map(b => bk(b, { sub: deepOf(b.id) ? "✦ 깊이 소개" : null })).join("")}</div></div>`;
+  }).join("");
+}
+const deepOf = id => ((window.BOOK_DEEP || {}).byId || {})[id] || null;
+function deepHtml(id) {
+  const x = deepOf(id); if (!x) return "";
+  return `<div class="deep"><p class="dk">✦ 깊이 소개</p><p class="done">${esc(x.one)}</p>${x.body.map(p => `<p>${esc(p)}</p>`).join("")}
+    ${x.start ? `<p class="dh">어디서부터 읽을까</p><p>${esc(x.start)}</p>` : ""}
+    ${(x.q || []).length ? `<p class="dh">읽고 나서 생각해 볼 것</p><ul>${x.q.map(q => `<li>${esc(q)}</li>`).join("")}</ul>` : ""}<p class="dn">Claude가 쓴 소개예요. 해석이 갈리는 대목은 다른 글과 함께 읽어 보세요.</p></div>`;
 }
 function broken() { const b = Object.keys((IDX && IDX.broken) || {}); return b.length ? `<p class="health">⚠︎ 지금 못 읽는 목록 ${b.length}곳: ${esc(srcNames(b).join(", "))} (직전 목록으로 보여 줘요)</p>` : ""; }
 function tocPct(id) { const d = SHARD[id.slice(1, 3)] && SHARD[id.slice(1, 3)][id]; const m = S.toc[id] || {}; const n = Object.keys(m).length; if (!d || !d.toc) return n ? `목차 ${n}칸 체크` : "읽는 중"; const tot = d.toc.split("\n").length; return `${Math.round(n / tot * 100)}% 읽음`; }
@@ -366,6 +384,7 @@ async function renderBook(id) {
   h += `<div class="bhead">${cover({ ...b, cv: d.cv, cv2: d.cv2 })}<div style="min-width:0"><h1 class="bt">${esc(d.t)}</h1>${d.tko ? `<p class="ba" style="color:var(--accent)">${esc(d.tko)} <small style="color:var(--muted)">(기계번역)</small></p>` : ""}<p class="ba">${esc(d.a || "지은이 미상")}${esc(life)}</p>
     ${d.tr && d.tr.length ? `<p class="bs">옮긴이 ${esc(d.tr.join(", "))}</p>` : ""}<p class="bs">${esc([d.pub, d.y, d.pg ? d.pg + "쪽" : ""].filter(Boolean).join(" · "))}</p>${d.ot ? `<p class="bs">원제 ${esc(d.ot)}</p>` : ""}
     <div style="margin-top:8px">${[["f", d.f], ["n", d.n], ["e", d.e], ["l", d.l]].filter(([, v]) => v && v !== "미상").map(([k, v]) => `<button class="rc g" data-ff="${k}:${esc(v)}">${esc(v)}</button>`).join("")}</div></div></div>`;
+  h += deepHtml(id);
   // 추천한 곳 (연도·판까지)
   const recs = {};
   for (const [s, lb] of d.recs || []) { const k = (m[s] || {}).short || s; (recs[k] = recs[k] || []); if (lb) recs[k].push(lb); }
