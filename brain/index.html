@@ -109,6 +109,7 @@ nav.tabs button b{font-size:20px;font-weight:400;line-height:1.1}
   <button data-v="learn"><b>❏</b>외우기</button>
   <button data-v="shelf"><b>☆</b>보관함</button>
 </nav>
+<script src="exp.js?v=1"></script>
 <script>
 "use strict";
 /* ───── 상태 (폰 브라우저에 저장 · 구글 로그인하면 기기끼리 맞춤) ───── */
@@ -155,7 +156,7 @@ async function loadAll() {
   getJ("_index.json").then(x => { IDX = x; if ((location.hash || "").startsWith("#news") && NEWS) paint(); }).catch(() => { });
   getJ("news.json").then(x => { NEWS = x; if (/^#(today|news)?$/.test(location.hash || "") || (location.hash || "").startsWith("#news")) paint(); }).catch(() => { NEWS = { items: [] }; });
   getJ("wiki.json").then(x => { WIKI = x; }).catch(() => { WIKI = {}; });
-  getJ("stories.json").then(x => { ST = x; const h = location.hash || ""; if (/^#(today)?$/.test(h) || h.startsWith("#st")) paint(); }).catch(() => { ST = { items: [] }; });
+  getJ("stories.json").then(x => { ST = x; addExp(); const h = location.hash || ""; if (/^#(today)?$/.test(h) || h.startsWith("#st")) paint(); }).catch(() => { ST = { items: [] }; });
 }
 function hasAtom(r, key) { const base = key.split(":")[0]; return r.atoms.some(s => s.includes(":") ? s === key : s === base); }
 function atomsOf(id) { const r = R[id]; return r ? A.atoms.filter(k => hasAtom(r, k)) : []; }
@@ -233,6 +234,12 @@ function renderToday() {
   return h;
 }
 
+function addExp() {                                       // Claude가 쓴 '유명한 실험·사례' (brain/exp.js)
+  const E = window.BRAIN_EXP || []; if (!ST || !E.length) return; ST.items = ST.items || [];
+  const have = new Set(ST.items.map(c => c.id)), n0 = ST.items.length;
+  E.forEach((c, i) => { if (!have.has(c.id)) ST.items.push(Object.assign({ n: n0 + i + 1, ext: false }, c)); });
+}
+const paras = t => String(t || "").split(/\n\n+/).map(x => x.trim()).filter(Boolean);
 /* ───── 뇌 이야기: 《생각의 탄생》·《ADHD 2.0》 인물 일화 75장 (data/brain/stories.json) ───── */
 const SB = { "생각의 탄생": "생각의 탄생", "ADHD 2.0 · 뇌과학": "ADHD 2.0 · 뇌과학" };
 function todayStory() {                                   // 날마다 바뀌는 '오늘의 이야기' (안 읽은 것 먼저)
@@ -251,8 +258,8 @@ function storySection() {
   if (!ST) return "";
   const l = ST.items || []; if (!l.length) return "";
   const c = todayStory(), nr = l.filter(x => S.sread[x.id]).length;
-  return `<h2 class="sec">생각·주의력 이야기<small>읽음 ${nr}/${l.length}</small><button data-go="#st">전부 ›</button></h2>` +
-    `<p class="note" style="margin-top:-4px">《생각의 탄생》과 《ADHD 2.0》에 나오는 인물 일화. 하루 한 장씩 바뀌어요.</p>` + (c ? storyCard(c) : "");
+  return `<h2 class="sec">실험·사례·이야기<small>읽음 ${nr}/${l.length}</small><button data-go="#st">전부 ›</button></h2>` +
+    `<p class="note" style="margin-top:-4px">유명한 뇌·심리 실험과 사례, 《생각의 탄생》·《ADHD 2.0》의 인물 일화. 하루 한 장씩 바뀌어요.</p>` + (c ? storyCard(c) : "");
 }
 function storyList(f) {
   let l = (ST && ST.items) || [];
@@ -265,7 +272,7 @@ function storyList(f) {
 function storyDeckCard(c) {
   return `<div class="vdk-body"><div class="vdk-k"><span class="bd src">${esc(c.book)}</span><span>${esc(c.ch)}</span><span>No.${c.n}</span></div>
     <h2 class="vdk-t">${esc(c.title)}</h2>${c.who ? `<p class="vdk-note" style="margin:-6px 0 10px">${esc(c.who)}${c.field ? " · " + esc(c.field) : ""}</p>` : ""}
-    <p class="vdk-p">${esc(c.story)}</p><p class="vdk-h">핵심 통찰</p><p class="vdk-p">${esc(c.insight)}</p>
+    ${paras(c.story).map(x => `<p class="vdk-p">${/^요즘 평가:/.test(x) ? `<b>요즘 평가</b> ${esc(x.replace(/^요즘 평가:\s*/, ""))}` : esc(x)}</p>`).join("")}<p class="vdk-h">핵심 통찰</p><p class="vdk-p">${esc(c.insight)}</p>
     ${(c.rs || []).length ? `<p class="vdk-note">나온 부위: ${c.rs.filter(r => R[r]).map(r => `<button type="button" class="rc" data-r="${r}">${esc(R[r].ko)}</button>`).join("")}</p>` : ""}
     <button type="button" class="vdk-more" data-st="${c.id}">별표 · 메모 ›</button></div>`;
 }
@@ -273,7 +280,7 @@ function renderStories() {
   const l0 = (ST && ST.items) || [];
   let h = `<div class="top"><button class="ib" data-act="back" aria-label="뒤로">‹</button></div>` + head("생각·주의력 이야기", `${l0.length}장 · 읽음 ${l0.filter(c => S.sread[c.id]).length} · 별표 ${Object.keys(S.sstar).length}`);
   if (!ST) return h + '<p class="note">불러오는 중…</p>';
-  const F = [["", "전체"], ["생각의 탄생", "생각의 탄생"], ["ADHD 2.0 · 뇌과학", "ADHD 2.0 · 뇌과학"], ["unread", "안 읽은 것"], ["star", "별표"], ["rs", "뇌 부위 나온 것"]];
+  const F = [["", "전체"], ["유명한 실험", "🔬 유명한 실험"], ["유명한 사례", "🧠 유명한 사례"], ["생각의 탄생", "생각의 탄생"], ["ADHD 2.0 · 뇌과학", "ADHD 2.0 · 뇌과학"], ["unread", "안 읽은 것"], ["star", "별표"], ["rs", "뇌 부위 나온 것"]];
   h += `<div class="chips">${F.map(([k, n]) => `<button data-sf="${k}" class="${S.sf === k ? "on" : ""}">${n}<small>${storyList(k).length}</small></button>`).join("")}</div>`;
   if (D) h += D.modeSwitch("brain-st", () => paint());
   const l = storyList(S.sf);
@@ -293,7 +300,7 @@ function openStory(id) {
   back.innerHTML = `<div class="sheet" role="dialog"><div class="grab"></div><div class="meta" style="margin-bottom:6px"><span class="bd src">${esc(c.book)}</span><span>${esc(c.ch)}</span><span>No.${c.n}</span></div>
     <h3>${esc(c.title)}</h3>${c.who ? `<p class="note">${esc(c.who)}${c.field ? " · " + esc(c.field) : ""}</p>` : ""}
     ${r0 ? `<div class="mini">${mapSvg(bestView(r0), { hl: atomsOf(r0), hl2: c.rs.slice(1).filter(r => R[r]).flatMap(atomsOf), capx: R[r0].ko })}</div>` : ""}
-    <div class="wiki" style="white-space:normal">${esc(c.story)}</div>
+    <div class="wiki" style="white-space:normal">${paras(c.story).map(x => `<p style="margin:0 0 10px">${/^요즘 평가:/.test(x) ? `<b>요즘 평가</b> ${esc(x.replace(/^요즘 평가:\s*/, ""))}` : esc(x)}</p>`).join("")}</div>
     <div class="origin" style="margin-top:10px"><b>핵심 통찰</b> ${esc(c.insight)}</div>
     ${(c.rs || []).length ? `<p class="note" style="margin-top:8px">나온 부위 (누르면 설명)</p><div>${c.rs.filter(r => R[r]).map(r => `<button class="rc" data-r="${r}">${esc(R[r].ko)}</button>`).join("")}</div>` : ""}
     <div class="row2" style="margin:10px 0"><button class="btn" data-act="sstar">${S.sstar[id] ? "★ 별표 해제" : "☆ 별표"}</button><button class="btn" data-act="sthink">✎ 생각</button><button class="btn" data-act="sshare">공유</button></div>
