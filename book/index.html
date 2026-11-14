@@ -244,11 +244,17 @@ function themesHtml() {                                  // Claude가 고른 주
   }).join("");
 }
 const deepOf = id => ((window.BOOK_DEEP || {}).byId || {})[id] || null;
+/* Claude(API)가 쓴 깊이 소개 (시사 자판기 저장소 robot/book_deep.py) — 손으로 쓴 것이 먼저 */
+fetch("/vendingForMe/data/book/deep_ai.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(j => {
+  if (!j || !j.byId) return; const B = window.BOOK_DEEP = window.BOOK_DEEP || { byId: {}, themes: [] }; B.byId = B.byId || {};
+  let n = 0; for (const k in j.byId) if (!B.byId[k]) { B.byId[k] = j.byId[k]; n++; }
+  if (n && /^#(b=|$)|^$/.test(location.hash)) paint();
+}).catch(() => {});
 function deepHtml(id) {
   const x = deepOf(id); if (!x) return "";
   return `<div class="deep"><p class="dk">✦ 깊이 소개</p><p class="done">${esc(x.one)}</p>${x.body.map(p => `<p>${esc(p)}</p>`).join("")}
     ${x.start ? `<p class="dh">어디서부터 읽을까</p><p>${esc(x.start)}</p>` : ""}
-    ${(x.q || []).length ? `<p class="dh">읽고 나서 생각해 볼 것</p><ul>${x.q.map(q => `<li>${esc(q)}</li>`).join("")}</ul>` : ""}<p class="dn">Claude가 쓴 소개예요. 해석이 갈리는 대목은 다른 글과 함께 읽어 보세요.</p></div>`;
+    ${(x.q || []).length ? `<p class="dh">읽고 나서 생각해 볼 것</p><ul>${x.q.map(q => `<li>${esc(q)}</li>`).join("")}</ul>` : ""}<p class="dn">${x.api ? `Claude가 위키백과${x.wiki ? `(${esc(x.wiki.replace(/^[a-z]+:/, ""))})` : ""}를 바탕으로 쓴 소개예요.` : "Claude가 쓴 소개예요."} 해석이 갈리는 대목은 다른 글과 함께 읽어 보세요.</p></div>`;
 }
 function broken() { const b = Object.keys((IDX && IDX.broken) || {}); return b.length ? `<p class="health">⚠︎ 지금 못 읽는 목록 ${b.length}곳: ${esc(srcNames(b).join(", "))} (직전 목록으로 보여 줘요)</p>` : ""; }
 function tocPct(id) { const d = SHARD[id.slice(1, 3)] && SHARD[id.slice(1, 3)][id]; const m = S.toc[id] || {}; const n = Object.keys(m).length; if (!d || !d.toc) return n ? `목차 ${n}칸 체크` : "읽는 중"; const tot = d.toc.split("\n").length; return `${Math.round(n / tot * 100)}% 읽음`; }
