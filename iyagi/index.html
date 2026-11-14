@@ -304,7 +304,7 @@ body.reading .rtools{position:sticky;top:0;z-index:15;background:var(--paper);ma
 </nav>
 <div id="sheet" class="sheet" hidden></div>
 <div id="toast" class="toast" hidden role="status"></div>
-
+<script src="claude-1.js?v=1"></script><script src="claude-2.js?v=1"></script><script src="claude-3.js?v=1"></script>
 <script>
 /* ───────── 이야기 데이터 (시범 10편) ───────── */
 const SEED=[
@@ -629,6 +629,7 @@ function addStory(s){
   ["parts","beyond","sources","links","mood","tags"].forEach(k=>{if(!Array.isArray(s[k]))s[k]=[]});
   byId[s.id]=s;STORIES.push(s);return true;
 }
+(window.IYAGI_ADD||[]).forEach(o=>{o.claude=1;addStory(o)});
 const keys=s=>["d1","d2","d3"].filter(k=>s.depths[k]).concat("beyond");
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
